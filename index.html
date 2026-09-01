@@ -21,6 +21,88 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
+    <!-- Authentication Overlay (Login / Register) -->
+    <div id="auth-overlay" class="auth-overlay hidden">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i data-lucide="package"></i>
+                </div>
+                <h2>EstoquePro</h2>
+                <p>Gestão de estoque, vendas, aluguéis e empréstimos</p>
+            </div>
+
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab active" id="tab-login">Entrar</button>
+                <button type="button" class="auth-tab" id="tab-register">Criar Conta</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-username">Nome de Usuário</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="user"></i>
+                        <input type="text" id="login-username" class="form-input" placeholder="Seu usuário..." required autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="login-password" class="form-input" placeholder="Sua senha..." required autocomplete="current-password">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="btn-submit-login">
+                    <i data-lucide="log-in"></i>
+                    <span>Entrar no Sistema</span>
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="register-username">Nome de Usuário</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="user-plus"></i>
+                        <input type="text" id="register-username" class="form-input" placeholder="Escolha um nome de usuário..." required autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Senha</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="register-password" class="form-input" placeholder="Crie uma senha..." required autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password-confirm">Confirmar Senha</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="shield-check"></i>
+                        <input type="password" id="register-password-confirm" class="form-input" placeholder="Confirme sua senha..." required autocomplete="new-password">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="btn-submit-register">
+                    <i data-lucide="check-circle"></i>
+                    <span>Criar Conta e Acessar</span>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <div class="server-status-row">
+                    <span id="auth-server-status" class="server-status-pill checking">● Verificando Servidor...</span>
+                    <button type="button" class="btn-text" id="btn-auth-config-server">
+                        <i data-lucide="settings" style="width:13px;height:13px;"></i>
+                        Configurar Servidor
+                    </button>
+                </div>
+                <button type="button" class="btn-text-muted" id="btn-continue-offline">
+                    Continuar em modo local offline
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar -->
         <nav class="sidebar">
@@ -69,7 +151,27 @@
             </ul>
             
             <div class="sidebar-footer">
+                <!-- User Profile & Server Bar -->
+                <div class="user-profile-card" id="user-profile-card">
+                    <div class="user-profile-header">
+                        <div class="user-avatar-circle">
+                            <i data-lucide="user"></i>
+                        </div>
+                        <div class="user-info-text">
+                            <span class="user-name-label" id="current-username">Usuário</span>
+                            <span class="server-status-pill online" id="sidebar-server-status">● Servidor</span>
+                        </div>
+                        <button class="btn-icon" id="btn-logout" title="Sair da Conta">
+                            <i data-lucide="log-out" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="backup-actions" style="display:flex;flex-direction:column;gap:6px;width:100%;margin-bottom:12px;">
+                    <button class="btn btn-secondary btn-sm" id="btn-open-server-config" title="Configurar Servidor / Banco de Dados" style="width:100%;justify-content:flex-start;">
+                        <i data-lucide="server"></i>
+                        <span>Servidor / Banco</span>
+                    </button>
                     <button class="btn btn-secondary btn-sm" id="btn-export-sidebar" title="Salvar arquivo de dados no PC" style="width:100%;justify-content:flex-start;">
                         <i data-lucide="download"></i>
                         <span>Salvar no PC (.json)</span>
@@ -998,6 +1100,33 @@
                     <i data-lucide="check-circle"></i>
                     Confirmar Pagamento
                 </button>
+            </div>
+        </div>
+    <!-- Server Configuration Modal -->
+    <div id="server-config-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Configurar Servidor (Ubuntu)</h2>
+                <button class="btn-close-modal" id="btn-close-server-config-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-3">
+                    Informe o endereço do seu servidor Node.js/Cloudflare Tunnel rodando no seu notebook.
+                </p>
+                <div class="form-group">
+                    <label for="server-url-input">Endereço da API do Servidor</label>
+                    <input type="url" id="server-url-input" class="form-input" placeholder="https://seu-tunnel.trycloudflare.com ou http://localhost:3000">
+                </div>
+                <div id="server-test-result" style="margin-bottom:12px;font-size:0.85rem;display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-test-server-connection">
+                    <i data-lucide="activity"></i>
+                    Testar Conexão
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-save-server-config">Salvar Endereço</button>
             </div>
         </div>
     </div>

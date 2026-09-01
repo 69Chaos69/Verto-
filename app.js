@@ -9,7 +9,10 @@ class InventoryApp {
       SALES: 'estoquepro_sales',
       RENTAL_PRODUCTS: 'estoquepro_rental_products',
       RENTALS: 'estoquepro_rentals',
-      LOANS: 'estoquepro_loans'
+      LOANS: 'estoquepro_loans',
+      SERVER_URL: 'estoquepro_server_url',
+      AUTH_TOKEN: 'estoquepro_auth_token',
+      USER: 'estoquepro_user'
     };
 
     this.products = [];
@@ -22,7 +25,13 @@ class InventoryApp {
     this.deleteTargetId = null;
     this.refundTargetId = null;
     this.closeRentalTargetId = null;
-    this.loanReturnTargetId = null;
+    this.loanPaymentTargetId = null;
+
+    // Server & Auth State
+    this.serverUrl = localStorage.getItem(this.STORAGE_KEYS.SERVER_URL) || 'http://localhost:3000';
+    this.authToken = localStorage.getItem(this.STORAGE_KEYS.AUTH_TOKEN) || null;
+    this.currentUser = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.USER)) || null;
+    this.isServerOnline = false;
 
     this.init();
   }
@@ -34,6 +43,7 @@ class InventoryApp {
     this.bindEvents();
     this.setCurrentDate();
     this.initNavigation();
+    this.initAuthAndServer();
     this.renderCurrentSection();
   }
 
@@ -266,6 +276,31 @@ class InventoryApp {
       });
     }
 
+    // Auth Tabs Switching
+    document.getElementById('tab-login')?.addEventListener('click', () => this.switchAuthTab('login'));
+    document.getElementById('tab-register')?.addEventListener('click', () => this.switchAuthTab('register'));
+
+    // Auth Forms Submit
+    document.getElementById('login-form')?.addEventListener('submit', (e) => this.handleLogin(e));
+    document.getElementById('register-form')?.addEventListener('submit', (e) => this.handleRegister(e));
+
+    // Continue Offline
+    document.getElementById('btn-continue-offline')?.addEventListener('click', () => {
+      document.getElementById('auth-overlay')?.classList.add('hidden');
+      this.showToast('Modo offline local ativo. Os dados serão salvos no navegador.', 'warning');
+    });
+
+    // Logout
+    document.getElementById('btn-logout')?.addEventListener('click', () => this.handleLogout());
+
+    // Server Config Modal
+    const openServerModal = () => this.openServerConfigModal();
+    document.getElementById('btn-open-server-config')?.addEventListener('click', openServerModal);
+    document.getElementById('btn-auth-config-server')?.addEventListener('click', openServerModal);
+    document.getElementById('btn-close-server-config-modal')?.addEventListener('click', () => this.closeModal('server-config-modal'));
+    document.getElementById('btn-test-server-connection')?.addEventListener('click', () => this.testServerConnection());
+    document.getElementById('btn-save-server-config')?.addEventListener('click', () => this.saveServerConfig());
+
     // Click on modal overlay to close
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
@@ -368,12 +403,372 @@ class InventoryApp {
     }
   }
 
-  saveData() {
+  saveData(syncToServer = true) {
     localStorage.setItem(this.STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
     localStorage.setItem(this.STORAGE_KEYS.SALES, JSON.stringify(this.sales));
     localStorage.setItem(this.STORAGE_KEYS.RENTAL_PRODUCTS, JSON.stringify(this.rentalProducts));
     localStorage.setItem(this.STORAGE_KEYS.RENTALS, JSON.stringify(this.rentals));
     localStorage.setItem(this.STORAGE_KEYS.LOANS, JSON.stringify(this.loans));
+
+    if (syncToServer) {
+      this.syncDataToServer();
+    }
+  }
+
+  // ============ AUTHENTICATION & SERVER SYNC ============
+
+  switchAuthTab(tab) {
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const formLogin = document.getElementById('login-form');
+    const formRegister = document.getElementById('register-form');
+
+    if (tab === 'login') {
+      tabLogin?.classList.add('active');
+      tabRegister?.classList.remove('active');
+      formLogin?.classList.remove('hidden');
+      formRegister?.classList.add('hidden');
+    } else {
+      tabRegister?.classList.add('active');
+      tabLogin?.classList.remove('active');
+      formRegister?.classList.remove('hidden');
+      formLogin?.classList.add('hidden');
+    }
+    this.refreshIcons();
+  }
+
+  async initAuthAndServer() {
+    this.updateAuthUI();
+    await this.checkServerHealth();
+
+    if (this.authToken) {
+      document.getElementById('auth-overlay')?.classList.add('hidden');
+      await this.fetchDataFromServer();
+    } else {
+      document.getElementById('auth-overlay')?.classList.remove('hidden');
+    }
+    this.refreshIcons();
+  }
+
+  updateAuthUI() {
+    const usernameEl = document.getElementById('current-username');
+    if (usernameEl) {
+      usernameEl.textContent = this.currentUser?.username || 'Modo Local';
+    }
+  }
+
+  async checkServerHealth() {
+    const authStatusPill = document.getElementById('auth-server-status');
+    const sidebarStatusPill = document.getElementById('sidebar-server-status');
+
+    if (authStatusPill) {
+      authStatusPill.className = 'server-status-pill checking';
+      authStatusPill.textContent = '● Verificando...';
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const res = await fetch(`${this.serverUrl}/api/health`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        this.isServerOnline = true;
+        if (authStatusPill) {
+          authStatusPill.className = 'server-status-pill online';
+          authStatusPill.textContent = '● Servidor Conectado';
+        }
+        if (sidebarStatusPill) {
+          sidebarStatusPill.className = 'server-status-pill online';
+          sidebarStatusPill.textContent = '● Servidor Online';
+        }
+        return true;
+      }
+    } catch (e) {
+      // Server is offline / unreachable
+    }
+
+    this.isServerOnline = false;
+    if (authStatusPill) {
+      authStatusPill.className = 'server-status-pill offline';
+      authStatusPill.textContent = '● Servidor Offline';
+    }
+    if (sidebarStatusPill) {
+      sidebarStatusPill.className = 'server-status-pill offline';
+      sidebarStatusPill.textContent = '● Servidor Offline';
+    }
+    return false;
+  }
+
+  openServerConfigModal() {
+    const input = document.getElementById('server-url-input');
+    const resultDiv = document.getElementById('server-test-result');
+    if (input) input.value = this.serverUrl;
+    if (resultDiv) {
+      resultDiv.style.display = 'none';
+      resultDiv.innerHTML = '';
+    }
+    const modal = document.getElementById('server-config-modal');
+    if (modal) modal.classList.remove('hidden');
+    this.refreshIcons();
+  }
+
+  async testServerConnection() {
+    const input = document.getElementById('server-url-input');
+    const resultDiv = document.getElementById('server-test-result');
+    if (!input || !resultDiv) return;
+
+    let targetUrl = input.value.trim();
+    if (!targetUrl) {
+      resultDiv.style.display = 'block';
+      resultDiv.style.color = 'var(--accent-rose)';
+      resultDiv.textContent = 'Informe um endereço de servidor.';
+      return;
+    }
+
+    targetUrl = targetUrl.replace(/\/+$/, '');
+    resultDiv.style.display = 'block';
+    resultDiv.style.color = 'var(--accent-amber)';
+    resultDiv.textContent = 'Testando conexão com o servidor...';
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(`${targetUrl}/api/health`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        resultDiv.style.color = 'var(--accent-emerald)';
+        resultDiv.innerHTML = `✅ <strong>Conectado com sucesso!</strong> (${data.app || 'Servidor'} - ${data.database || 'SQLite'})`;
+        return true;
+      }
+    } catch (err) {
+      // Fall through to error message
+    }
+
+    resultDiv.style.color = 'var(--accent-rose)';
+    resultDiv.innerHTML = `❌ <strong>Não foi possível conectar.</strong> Verifique se o servidor está rodando no notebook e se a URL está correta.`;
+    return false;
+  }
+
+  async saveServerConfig() {
+    const input = document.getElementById('server-url-input');
+    if (!input) return;
+
+    let targetUrl = input.value.trim().replace(/\/+$/, '');
+    if (!targetUrl) {
+      targetUrl = 'http://localhost:3000';
+    }
+
+    this.serverUrl = targetUrl;
+    localStorage.setItem(this.STORAGE_KEYS.SERVER_URL, this.serverUrl);
+
+    this.closeModal('server-config-modal');
+    this.showToast('Endereço do servidor atualizado!', 'success');
+
+    await this.checkServerHealth();
+    if (this.authToken && this.isServerOnline) {
+      await this.fetchDataFromServer();
+    }
+  }
+
+  async handleLogin(e) {
+    e.preventDefault();
+
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+    const submitBtn = document.getElementById('btn-submit-login');
+
+    const username = usernameInput?.value.trim();
+    const password = passwordInput?.value;
+
+    if (!username || !password) {
+      return this.showToast('Preencha o usuário e a senha.', 'error');
+    }
+
+    if (!this.isServerOnline) {
+      await this.checkServerHealth();
+    }
+
+    if (!this.isServerOnline) {
+      return this.showToast('Servidor offline. Verifique se o backend está rodando no notebook ou configure o endereço.', 'error');
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Entrando...</span>';
+    }
+
+    try {
+      const res = await fetch(`${this.serverUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao realizar login.');
+      }
+
+      this.authToken = data.token;
+      this.currentUser = data.user;
+      localStorage.setItem(this.STORAGE_KEYS.AUTH_TOKEN, this.authToken);
+      localStorage.setItem(this.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
+
+      this.updateAuthUI();
+      document.getElementById('auth-overlay')?.classList.add('hidden');
+      this.showToast(`Bem-vindo, ${data.user.username}!`, 'success');
+
+      await this.fetchDataFromServer();
+      this.renderCurrentSection();
+    } catch (err) {
+      this.showToast(err.message, 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="log-in"></i><span>Entrar no Sistema</span>';
+        this.refreshIcons();
+      }
+    }
+  }
+
+  async handleRegister(e) {
+    e.preventDefault();
+
+    const usernameInput = document.getElementById('register-username');
+    const passwordInput = document.getElementById('register-password');
+    const confirmInput = document.getElementById('register-password-confirm');
+    const submitBtn = document.getElementById('btn-submit-register');
+
+    const username = usernameInput?.value.trim();
+    const password = passwordInput?.value;
+    const confirm = confirmInput?.value;
+
+    if (!username || !password) {
+      return this.showToast('Preencha todos os campos.', 'error');
+    }
+
+    if (password !== confirm) {
+      return this.showToast('As senhas digitadas não coincidem.', 'error');
+    }
+
+    if (!this.isServerOnline) {
+      await this.checkServerHealth();
+    }
+
+    if (!this.isServerOnline) {
+      return this.showToast('Servidor offline. Verifique se o backend está rodando no notebook ou configure o endereço.', 'error');
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Criando conta...</span>';
+    }
+
+    try {
+      const res = await fetch(`${this.serverUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao criar conta.');
+      }
+
+      this.authToken = data.token;
+      this.currentUser = data.user;
+      localStorage.setItem(this.STORAGE_KEYS.AUTH_TOKEN, this.authToken);
+      localStorage.setItem(this.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
+
+      this.updateAuthUI();
+      document.getElementById('auth-overlay')?.classList.add('hidden');
+      this.showToast('Conta criada com sucesso!', 'success');
+
+      // Sync existing local data to new account if any exists
+      await this.syncDataToServer();
+      this.renderCurrentSection();
+    } catch (err) {
+      this.showToast(err.message, 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="check-circle"></i><span>Criar Conta e Acessar</span>';
+        this.refreshIcons();
+      }
+    }
+  }
+
+  handleLogout() {
+    if (!confirm('Deseja realmente sair da sua conta?')) return;
+
+    this.authToken = null;
+    this.currentUser = null;
+    localStorage.removeItem(this.STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(this.STORAGE_KEYS.USER);
+
+    this.updateAuthUI();
+    document.getElementById('auth-overlay')?.classList.remove('hidden');
+    this.switchAuthTab('login');
+    this.showToast('Você saiu da sua conta.', 'info');
+  }
+
+  async fetchDataFromServer() {
+    if (!this.authToken || !this.isServerOnline) return;
+
+    try {
+      const res = await fetch(`${this.serverUrl}/api/data`, {
+        headers: {
+          'Authorization': `Bearer ${this.authToken}`
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.products = Array.isArray(data.products) ? data.products : [];
+        this.sales = Array.isArray(data.sales) ? data.sales : [];
+        this.rentalProducts = Array.isArray(data.rentalProducts) ? data.rentalProducts : [];
+        this.rentals = Array.isArray(data.rentals) ? data.rentals : [];
+        this.loans = Array.isArray(data.loans) ? data.loans : [];
+
+        this.saveData(false); // save to cache without re-triggering sync
+        this.renderCurrentSection();
+      }
+    } catch (e) {
+      console.warn('Não foi possível carregar dados do servidor:', e);
+    }
+  }
+
+  async syncDataToServer() {
+    if (!this.authToken || !this.isServerOnline) return;
+
+    try {
+      await fetch(`${this.serverUrl}/api/data/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.authToken}`
+        },
+        body: JSON.stringify({
+          products: this.products,
+          sales: this.sales,
+          rentalProducts: this.rentalProducts,
+          rentals: this.rentals,
+          loans: this.loans
+        })
+      });
+    } catch (e) {
+      console.warn('Erro ao sincronizar com o servidor:', e);
+    }
   }
 
   async exportDataToFile() {
