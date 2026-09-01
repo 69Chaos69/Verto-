@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Estoque Pro - Sistema premium de gerenciamento de estoque, vendas e relatórios financeiros.">
+    <title>Estoque Pro - Gerenciamento de Estoque</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <i data-lucide="package" class="logo-icon"></i>
+                <span class="logo-text">EstoquePro</span>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item active" data-target="dashboard-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="products-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="package"></i>
+                        <span>Produtos</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="sales-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="shopping-cart"></i>
+                        <span>Vendas</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="reports-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="bar-chart-3"></i>
+                        <span>Relatórios</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="rental-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Aluguel</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="loans-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="hand-coins"></i>
+                        <span>Empréstimos</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="backup-actions" style="display:flex;flex-direction:column;gap:6px;width:100%;margin-bottom:12px;">
+                    <button class="btn btn-secondary btn-sm" id="btn-export-sidebar" title="Salvar arquivo de dados no PC" style="width:100%;justify-content:flex-start;">
+                        <i data-lucide="download"></i>
+                        <span>Salvar no PC (.json)</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="btn-import-sidebar" title="Carregar arquivo de dados do PC" style="width:100%;justify-content:flex-start;">
+                        <i data-lucide="upload"></i>
+                        <span>Abrir do PC</span>
+                    </button>
+                </div>
+                <div class="about-info">
+                    <p class="text-sm">EstoquePro v1.0</p>
+                    <p class="text-xs text-muted">Desenvolvido com ❤️</p>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h1 id="section-title">Dashboard</h1>
+                </div>
+                
+                <div class="header-right">
+                    <button class="btn btn-secondary btn-sm" id="btn-export-data" title="Salvar arquivo de dados no PC">
+                        <i data-lucide="download"></i>
+                        <span>Salvar no PC</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="btn-import-data" title="Carregar arquivo de dados do PC">
+                        <i data-lucide="upload"></i>
+                        <span>Abrir do PC</span>
+                    </button>
+                    <input type="file" id="file-import-input" accept=".json" style="display:none;">
+
+                    <div class="search-container">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="global-search" placeholder="Buscar produtos, vendas..." class="search-input">
+                    </div>
+                    <div class="date-display">
+                        <i data-lucide="calendar"></i>
+                        <span id="current-date"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="content-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper purple">
+                            <i data-lucide="boxes"></i>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-label">Total de Produtos</p>
+                            <h3 class="stat-value" id="stat-total-products">0</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper emerald">
+                            <i data-lucide="wallet"></i>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-label">Valor em Estoque</p>
+                            <h3 class="stat-value" id="stat-inventory-value">R$ 0,00</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper amber">
+                            <i data-lucide="trending-up"></i>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-label">Vendas do Mês</p>
+                            <h3 class="stat-value" id="stat-monthly-sales">R$ 0,00</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper" id="profit-icon-wrapper">
+                            <i data-lucide="dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-label">Lucro do Mês</p>
+                            <h3 class="stat-value" id="stat-monthly-profit">R$ 0,00</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper blue">
+                            <i data-lucide="calculator"></i>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-label">Lucro Presumido (Estoque)</p>
+                            <h3 class="stat-value" id="stat-projected-profit">R$ 0,00</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Vendas dos Últimos 7 Dias</h3>
+                        <div class="chart-container">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Produtos Mais Vendidos</h3>
+                        <div class="chart-container">
+                            <canvas id="topProductsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="activity-alerts-section">
+                    <div class="alerts-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Alertas de Estoque Baixo</h3>
+                            <i data-lucide="alert-triangle" class="text-amber"></i>
+                        </div>
+                        <div class="alerts-list" id="low-stock-alerts">
+                            <!-- Alerts will be injected here via JS -->
+                        </div>
+                    </div>
+                    <div class="activity-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Atividade Recente</h3>
+                            <i data-lucide="activity" class="text-blue"></i>
+                        </div>
+                        <div class="activity-list" id="recent-activity">
+                            <!-- Activity will be injected here via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Section -->
+            <section id="products-section" class="content-section hidden">
+                <div class="action-bar">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <i data-lucide="filter" class="filter-icon"></i>
+                            <select id="category-filter" class="form-select">
+                                <option value="all">Todas Categorias</option>
+                                <option value="Keys & CD-Keys">Keys & CD-Keys</option>
+                                <option value="Contas & Acessos">Contas & Acessos</option>
+                                <option value="Licenças & Softwares">Licenças & Softwares</option>
+                                <option value="Gift Cards & Vouchers">Gift Cards & Vouchers</option>
+                                <option value="Assinaturas & Streaming">Assinaturas & Streaming</option>
+                                <option value="Outros Digitais">Outros Digitais</option>
+                                <option value="Itens Físicos">Itens Físicos</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <i data-lucide="arrow-up-down" class="filter-icon"></i>
+                            <select id="sort-products" class="form-select">
+                                <option value="name-asc">Nome (A-Z)</option>
+                                <option value="name-desc">Nome (Z-A)</option>
+                                <option value="stock-asc">Menor Estoque</option>
+                                <option value="stock-desc">Maior Estoque</option>
+                                <option value="price-asc">Menor Preço</option>
+                                <option value="price-desc">Maior Preço</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn btn-secondary" id="btn-clear-all" style="color:var(--accent-rose);border-color:rgba(244,63,94,0.3);">
+                            <i data-lucide="trash-2"></i>
+                            Limpar Tudo
+                        </button>
+                        <button class="btn btn-primary" id="btn-new-product">
+                            <i data-lucide="plus"></i>
+                            Novo Produto
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Produto</th>
+                                <th>Categoria</th>
+                                <th>Qtd. em Estoque</th>
+                                <th>Preço de Custo (R$)</th>
+                                <th>Preço de Venda (R$)</th>
+                                <th>Taxa Venda (%)</th>
+                                <th>Margem Líquida</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                            <!-- Product rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales-section" class="content-section hidden">
+                <div class="sales-layout">
+                    <div class="sale-form-container">
+                        <div class="card">
+                            <h3 class="card-title">Registrar Nova Venda</h3>
+                            <form id="new-sale-form" class="form-stacked">
+                                <div class="form-group">
+                                    <label for="sale-product">Produto</label>
+                                    <select id="sale-product" class="form-input" required>
+                                        <option value="" disabled selected>Selecione um produto</option>
+                                        <!-- Options populated via JS -->
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="sale-quantity">Quantidade</label>
+                                        <input type="number" id="sale-quantity" class="form-input" min="1" value="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sale-discount">Desconto (%) <span class="optional">- opcional</span></label>
+                                        <input type="number" id="sale-discount" class="form-input" min="0" max="100" value="0">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sale-tax-rate">Taxa por Venda (%) <span class="optional">- sobre valor de venda</span></label>
+                                    <input type="number" id="sale-tax-rate" class="form-input" min="0" max="100" step="0.01" value="0">
+                                </div>
+                                <div class="sale-summary">
+                                    <div class="summary-row">
+                                        <span>Subtotal:</span>
+                                        <span id="sale-subtotal">R$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row discount">
+                                        <span>Desconto:</span>
+                                        <span id="sale-discount-val">- R$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row fee" style="color:var(--accent-amber);">
+                                        <span>Taxa de Venda:</span>
+                                        <span id="sale-fee-val">- R$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row total">
+                                        <span>Total:</span>
+                                        <span id="sale-total">R$ 0,00</span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i data-lucide="check-circle"></i>
+                                    Registrar Venda
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="sales-history-container">
+                        <div class="card h-full">
+                            <h3 class="card-title">Histórico de Vendas</h3>
+                            <div class="table-container-scrolly">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data/Hora</th>
+                                            <th>Produto</th>
+                                            <th>Qtd.</th>
+                                            <th>Preço Unit.</th>
+                                            <th>Desconto</th>
+                                            <th>Taxa Venda</th>
+                                            <th>Total</th>
+                                            <th>Lucro Líquido</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sales-table-body">
+                                        <!-- Sales history rows will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="content-section hidden">
+                <div class="reports-header">
+                    <form id="report-filter-form" class="date-filter-form">
+                        <div class="form-group-inline">
+                            <label for="report-date-start">De:</label>
+                            <input type="date" id="report-date-start" class="form-input">
+                        </div>
+                        <div class="form-group-inline">
+                            <label for="report-date-end">Até:</label>
+                            <input type="date" id="report-date-end" class="form-input">
+                        </div>
+                        <button type="submit" class="btn btn-secondary">Filtrar</button>
+                    </form>
+                </div>
+
+                <div class="report-summary-cards">
+                    <div class="summary-card">
+                        <div class="summary-icon text-blue">
+                            <i data-lucide="banknote"></i>
+                        </div>
+                        <div class="summary-info">
+                            <h4 class="summary-title">Receita Total</h4>
+                            <p class="summary-value" id="report-total-revenue">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon text-rose">
+                            <i data-lucide="shopping-bag"></i>
+                        </div>
+                        <div class="summary-info">
+                            <h4 class="summary-title">Custo Produtos</h4>
+                            <p class="summary-value" id="report-total-cost">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon text-amber">
+                            <i data-lucide="percent"></i>
+                        </div>
+                        <div class="summary-info">
+                            <h4 class="summary-title">Total Taxas</h4>
+                            <p class="summary-value" id="report-total-fees">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon text-emerald">
+                            <i data-lucide="pie-chart"></i>
+                        </div>
+                        <div class="summary-info">
+                            <h4 class="summary-title">Lucro Líquido</h4>
+                            <p class="summary-value" id="report-net-profit">R$ 0,00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reports-content-grid">
+                    <div class="card">
+                        <h3 class="card-title">Evolução do Lucro</h3>
+                        <div class="chart-container large">
+                            <canvas id="profitChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">Rentabilidade por Produto</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Unidades Vendidas</th>
+                                        <th>Receita Gerada</th>
+                                        <th>Taxas Pagas</th>
+                                        <th>Lucro Líquido</th>
+                                        <th>Margem Média</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="product-profitability-table-body">
+                                    <!-- Rows injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rental Section -->
+            <section id="rental-section" class="content-section hidden">
+                <div class="action-bar">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <i data-lucide="filter" class="filter-icon"></i>
+                            <select id="rental-status-filter" class="form-select">
+                                <option value="all">Todos os Status</option>
+                                <option value="active">Ativos</option>
+                                <option value="expired">Vencidos</option>
+                                <option value="closed">Encerrados</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn btn-secondary" id="btn-new-rental-product">
+                            <i data-lucide="package-plus"></i>
+                            Cadastrar Item Alugável
+                        </button>
+                        <button class="btn btn-primary" id="btn-new-rental">
+                            <i data-lucide="plus"></i>
+                            Registrar Aluguel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="rental-layout">
+                    <!-- Rental Products Table -->
+                    <div class="card" style="margin-bottom:24px;">
+                        <h3 class="card-title">Itens Disponíveis para Aluguel</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Categoria</th>
+                                        <th>Disponíveis</th>
+                                        <th>Investimento (R$)</th>
+                                        <th>Valor/Dia</th>
+                                        <th>Valor/Semana</th>
+                                        <th>Valor/Mês</th>
+                                        <th>Dados/Chaves</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rental-products-table-body">
+                                    <!-- injected by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Active Rentals Table -->
+                    <div class="card">
+                        <h3 class="card-title">Histórico de Aluguéis</h3>
+                        <div class="table-container-scrolly">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Cliente</th>
+                                        <th>Período</th>
+                                        <th>Início</th>
+                                        <th>Vencimento</th>
+                                        <th>Total Cobrado</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rentals-table-body">
+                                    <!-- injected by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loans Section -->
+            <section id="loans-section" class="content-section hidden">
+                <div class="loans-layout">
+                    <!-- New Loan Form -->
+                    <div class="sale-form-container">
+                        <div class="card">
+                            <h3 class="card-title">Registrar Empréstimo</h3>
+                            <form id="new-loan-form" class="form-stacked">
+                                <div class="form-group">
+                                    <label for="loan-borrower">Para quem foi emprestado</label>
+                                    <input type="text" id="loan-borrower" class="form-input" placeholder="Nome ou contato..." required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="loan-amount">Valor Emprestado (R$)</label>
+                                    <input type="number" id="loan-amount" class="form-input" min="0.01" step="0.01" placeholder="0,00" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="loan-interest-rate">Juros (%) <span class="optional">- opcional</span></label>
+                                        <input type="number" id="loan-interest-rate" class="form-input" min="0" step="0.01" value="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="loan-date">Data do Empréstimo</label>
+                                        <input type="date" id="loan-date" class="form-input" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="loan-due-date">Data de Devolução Prevista</label>
+                                    <input type="date" id="loan-due-date" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="loan-notes">Observações <span class="optional">- opcional</span></label>
+                                    <textarea id="loan-notes" class="form-input" rows="2" placeholder="Motivo, garantia, contato..."></textarea>
+                                </div>
+                                <div class="sale-summary" id="loan-preview" style="display:none;">
+                                    <div class="summary-row">
+                                        <span>Valor Principal:</span>
+                                        <span id="loan-preview-principal">R$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row" style="color:var(--accent-amber);">
+                                        <span>Juros Estimados:</span>
+                                        <span id="loan-preview-interest">+ R$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row total">
+                                        <span>Total a Receber:</span>
+                                        <span id="loan-preview-total">R$ 0,00</span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i data-lucide="check-circle"></i>
+                                    Registrar Empréstimo
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Loans History -->
+                    <div class="sales-history-container">
+                        <div class="card h-full">
+                            <div class="card-header">
+                                <h3 class="card-title">Empréstimos</h3>
+                                <div style="display:flex;gap:8px;">
+                                    <span id="loans-open-badge" class="badge badge-warning" style="display:none;"></span>
+                                </div>
+                            </div>
+                            <div class="table-container-scrolly">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Para Quem</th>
+                                            <th>Valor</th>
+                                            <th>Juros (%)</th>
+                                            <th>Total a Receber</th>
+                                            <th>Total Pago</th>
+                                            <th>Saldo Devedor</th>
+                                            <th>Data</th>
+                                            <th>Vencimento</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="loans-table-body">
+                                        <!-- injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="product-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="product-modal-title">Novo Produto</h2>
+                <button class="btn-close-modal" id="btn-close-product-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="product-form">
+                    <input type="hidden" id="product-id">
+                    
+                    <div class="form-group">
+                        <label for="product-name">Nome do Produto</label>
+                        <input type="text" id="product-name" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-category">Categoria</label>
+                        <select id="product-category" class="form-input" required>
+                            <option value="Keys & CD-Keys">Keys & CD-Keys</option>
+                            <option value="Contas & Acessos">Contas & Acessos</option>
+                            <option value="Licenças & Softwares">Licenças & Softwares</option>
+                            <option value="Gift Cards & Vouchers">Gift Cards & Vouchers</option>
+                            <option value="Assinaturas & Streaming">Assinaturas & Streaming</option>
+                            <option value="Outros Digitais">Outros Digitais</option>
+                            <option value="Itens Físicos">Itens Físicos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-stock">Quantidade em Estoque</label>
+                            <input type="number" id="product-stock" class="form-input" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-min-stock">Estoque Mínimo</label>
+                            <input type="number" id="product-min-stock" class="form-input" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label for="product-cost-price">Preço de Custo (R$)</label>
+                            <input type="number" id="product-cost-price" class="form-input" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-sell-price">Preço de Venda (R$)</label>
+                            <input type="number" id="product-sell-price" class="form-input" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-tax-rate">Taxa Venda (%)</label>
+                            <input type="number" id="product-tax-rate" class="form-input" step="0.01" min="0" max="100" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-description">Descrição <span class="optional">(opcional)</span></label>
+                        <textarea id="product-description" class="form-input" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-access-data">
+                            <i data-lucide="key" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>
+                            Dados do Estoque / Informações <span class="optional">(Chaves, Logins, Senhas, Licenças, etc.)</span>
+                        </label>
+                        <textarea id="product-access-data" class="form-input" rows="3" placeholder="Ex: Key: XXXX-YYYY-ZZZZ&#10;Login: usuario@email.com | Senha: 123456"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-product">Cancelar</button>
+                <button type="submit" form="product-form" class="btn btn-primary" id="btn-save-product">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Confirmar Exclusão</h2>
+                <button class="btn-close-modal" id="btn-close-delete-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o produto <strong id="delete-item-name"></strong>?</p>
+                <p class="text-sm text-danger mt-2">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-delete">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirm-delete">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear All Confirmation Modal -->
+    <div id="clear-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Limpar Produtos e Estoque</h2>
+                <button class="btn-close-modal" id="btn-close-clear-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja apagar <strong>todos os produtos e histórico de estoque/vendas</strong>?</p>
+                <p class="text-sm text-danger mt-2">Esta ação apagará todos os itens e não poderá ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-clear">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirm-clear">Sim, Limpar Tudo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Access Data / Keys Modal -->
+    <div id="access-data-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dados do Estoque / Acesso</h2>
+                <button class="btn-close-modal" id="btn-close-access-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-2">Produto: <strong id="access-modal-product-name" class="text-main"></strong></p>
+                <div class="form-group">
+                    <textarea id="access-modal-content" class="form-input" rows="6" readonly style="font-family:monospace;font-size:0.9rem;background:rgba(0,0,0,0.4);"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-copy-access-data">
+                    <i data-lucide="copy"></i> Copiar Dados
+                </button>
+                <button class="btn btn-primary" id="btn-close-access-modal-ok">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refund Confirmation Modal -->
+    <div id="refund-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Confirmar Reembolso</h2>
+                <button class="btn-close-modal" id="btn-close-refund-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja reembolsar a venda de <strong id="refund-item-name"></strong>?</p>
+                <div class="form-group mt-3" style="display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="refund-return-stock" checked style="width:16px;height:16px;cursor:pointer;">
+                    <label for="refund-return-stock" style="margin:0;cursor:pointer;font-size:0.875rem;">Devolver quantidade ao estoque</label>
+                </div>
+                <p class="text-sm text-warning mt-2">O valor desta venda deixará de ser contado no faturamento e lucro.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-refund">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirm-refund">Confirmar Reembolso</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rental Product Modal -->
+    <div id="rental-product-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="rental-product-modal-title">Cadastrar Item Alugável</h2>
+                <button class="btn-close-modal" id="btn-close-rental-product-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="rental-product-form">
+                    <input type="hidden" id="rental-product-id">
+                    <div class="form-group">
+                        <label for="rental-product-name">Nome do Item</label>
+                        <input type="text" id="rental-product-name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rental-product-category">Categoria</label>
+                        <select id="rental-product-category" class="form-input" required>
+                            <option value="Keys & CD-Keys">Keys & CD-Keys</option>
+                            <option value="Contas & Acessos">Contas & Acessos</option>
+                            <option value="Licenças & Softwares">Licenças & Softwares</option>
+                            <option value="Gift Cards & Vouchers">Gift Cards & Vouchers</option>
+                            <option value="Assinaturas & Streaming">Assinaturas & Streaming</option>
+                            <option value="Outros Digitais">Outros Digitais</option>
+                            <option value="Itens Físicos">Itens Físicos</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rental-product-quantity">Quantidade Disponível</label>
+                            <input type="number" id="rental-product-quantity" class="form-input" min="1" value="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rental-product-investment">Valor Investido (R$)</label>
+                            <input type="number" id="rental-product-investment" class="form-input" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label for="rental-product-daily-rate">Valor/Dia (R$)</label>
+                            <input type="number" id="rental-product-daily-rate" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="rental-product-weekly-rate">Valor/Semana (R$)</label>
+                            <input type="number" id="rental-product-weekly-rate" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="rental-product-monthly-rate">Valor/Mês (R$)</label>
+                            <input type="number" id="rental-product-monthly-rate" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="rental-product-description">Descrição <span class="optional">(opcional)</span></label>
+                        <textarea id="rental-product-description" class="form-input" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="rental-product-access-data">
+                            <i data-lucide="key" style="width:14px;height:14px;display:inline;margin-right:4px;"></i>
+                            Dados / Chaves / Acesso <span class="optional">(opcional)</span>
+                        </label>
+                        <textarea id="rental-product-access-data" class="form-input" rows="3" placeholder="Ex: Login: usuario@email.com | Senha: 123456"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-rental-product">Cancelar</button>
+                <button type="submit" form="rental-product-form" class="btn btn-primary">Salvar Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rental Registration Modal -->
+    <div id="rental-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Registrar Aluguel</h2>
+                <button class="btn-close-modal" id="btn-close-rental-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="rental-form">
+                    <div class="form-group">
+                        <label for="rental-product-select">Item a Alugar</label>
+                        <select id="rental-product-select" class="form-input" required>
+                            <option value="" disabled selected>Selecione um item</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="rental-client">Cliente / Identificação</label>
+                        <input type="text" id="rental-client" class="form-input" placeholder="Nome ou contato do cliente..." required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rental-duration">Duração</label>
+                            <input type="number" id="rental-duration" class="form-input" min="1" value="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rental-duration-unit">Unidade de Período</label>
+                            <select id="rental-duration-unit" class="form-input">
+                                <option value="day">Dia(s)</option>
+                                <option value="week" selected>Semana(s)</option>
+                                <option value="month">Mês/Meses</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rental-start-date">Data de Início</label>
+                            <input type="date" id="rental-start-date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rental-end-date">Data de Vencimento</label>
+                            <input type="date" id="rental-end-date" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="rental-total-charged">Valor Total Cobrado (R$)</label>
+                        <input type="number" id="rental-total-charged" class="form-input" step="0.01" min="0" required>
+                    </div>
+                    <div class="sale-summary" id="rental-preview">
+                        <div class="summary-row">
+                            <span>Taxa por período:</span>
+                            <span id="rental-preview-rate">R$ 0,00</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total:</span>
+                            <span id="rental-preview-total">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="rental-notes">Observações <span class="optional">(opcional)</span></label>
+                        <textarea id="rental-notes" class="form-input" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-rental">Cancelar</button>
+                <button type="submit" form="rental-form" class="btn btn-primary">Confirmar Aluguel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Close Rental Modal -->
+    <div id="close-rental-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Encerrar Aluguel</h2>
+                <button class="btn-close-modal" id="btn-close-close-rental-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja encerrar o aluguel de <strong id="close-rental-item-name"></strong>?</p>
+                <div class="form-group mt-3" style="display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="rental-return-stock" checked style="width:16px;height:16px;cursor:pointer;">
+                    <label for="rental-return-stock" style="margin:0;cursor:pointer;font-size:0.875rem;">Devolver unidade ao estoque de itens alugáveis</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-close-rental">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirm-close-rental">Encerrar Aluguel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Payment / Abatement Modal -->
+    <div id="loan-payment-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Registrar Pagamento / Abatimento</h2>
+                <button class="btn-close-modal" id="btn-close-loan-payment-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="background:rgba(0,0,0,0.25);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:14px;margin-bottom:16px;">
+                    <div style="font-size:0.875rem;color:var(--text-muted);margin-bottom:4px;">Devedor: <strong id="loan-pay-borrower" class="text-main" style="font-size:1rem;"></strong></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);">
+                        <div>
+                            <span style="font-size:0.75rem;color:var(--text-dim);display:block;">Total Original</span>
+                            <strong id="loan-pay-total-due" style="font-size:0.95rem;color:var(--text-main);">R$ 0,00</strong>
+                        </div>
+                        <div>
+                            <span style="font-size:0.75rem;color:var(--text-dim);display:block;">Total Já Pago</span>
+                            <strong id="loan-pay-already-paid" style="font-size:0.95rem;color:var(--accent-emerald);">R$ 0,00</strong>
+                        </div>
+                        <div>
+                            <span style="font-size:0.75rem;color:var(--text-dim);display:block;">Saldo Devedor</span>
+                            <strong id="loan-pay-remaining" style="font-size:0.95rem;color:var(--accent-rose);">R$ 0,00</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="loan-payment-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="loan-payment-amount">Valor a Pagar / Abater (R$)</label>
+                            <input type="number" id="loan-payment-amount" class="form-input" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loan-payment-date">Data do Pagamento</label>
+                            <input type="date" id="loan-payment-date" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="loan-payment-note">Observação / Comprovante <span class="optional">(opcional)</span></label>
+                        <input type="text" id="loan-payment-note" class="form-input" placeholder="Ex: Pagamento parcial via PIX...">
+                    </div>
+                </form>
+
+                <div id="loan-payments-history-section" style="margin-top:16px;">
+                    <h4 style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Histórico de Pagamentos</h4>
+                    <div id="loan-payments-history-list" style="max-height:140px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border-color);">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-loan-payment">Cancelar</button>
+                <button type="submit" form="loan-payment-form" class="btn btn-primary" id="btn-confirm-loan-payment">
+                    <i data-lucide="check-circle"></i>
+                    Confirmar Pagamento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
