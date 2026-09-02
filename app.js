@@ -28,7 +28,7 @@ class InventoryApp {
     this.loanPaymentTargetId = null;
 
     // Server & Auth State
-    this.serverUrl = localStorage.getItem(this.STORAGE_KEYS.SERVER_URL) || 'http://localhost:3000';
+    this.serverUrl = localStorage.getItem(this.STORAGE_KEYS.SERVER_URL) || '';
     this.authToken = localStorage.getItem(this.STORAGE_KEYS.AUTH_TOKEN) || null;
     this.currentUser = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.USER)) || null;
     this.isServerOnline = false;
@@ -460,6 +460,19 @@ class InventoryApp {
   async checkServerHealth() {
     const authStatusPill = document.getElementById('auth-server-status');
     const sidebarStatusPill = document.getElementById('sidebar-server-status');
+
+    if (!this.serverUrl) {
+      this.isServerOnline = false;
+      if (authStatusPill) {
+        authStatusPill.className = 'server-status-pill offline';
+        authStatusPill.textContent = '● Servidor não configurado';
+      }
+      if (sidebarStatusPill) {
+        sidebarStatusPill.className = 'server-status-pill offline';
+        sidebarStatusPill.textContent = '● Não configurado';
+      }
+      return false;
+    }
 
     if (authStatusPill) {
       authStatusPill.className = 'server-status-pill checking';
