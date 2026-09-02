@@ -1,0 +1,6 @@
+server/
+.idea/
+*.db
+*.db-shm
+*.db-wal
+
