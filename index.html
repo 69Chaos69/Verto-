@@ -19,6 +19,9 @@
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- Authentication Overlay (Login / Register) -->
@@ -90,11 +93,7 @@
 
             <div class="auth-footer">
                 <div class="server-status-row">
-                    <span id="auth-server-status" class="server-status-pill checking">● Verificando Servidor...</span>
-                    <button type="button" class="btn-text" id="btn-auth-config-server">
-                        <i data-lucide="settings" style="width:13px;height:13px;"></i>
-                        Configurar Servidor
-                    </button>
+                    <span id="auth-server-status" class="server-status-pill online">● Banco de Dados Supabase (Nuvem)</span>
                 </div>
                 <button type="button" class="btn-text-muted" id="btn-continue-offline">
                     Continuar em modo local offline
@@ -159,7 +158,7 @@
                         </div>
                         <div class="user-info-text">
                             <span class="user-name-label" id="current-username">Usuário</span>
-                            <span class="server-status-pill online" id="sidebar-server-status">● Servidor</span>
+                            <span class="server-status-pill online" id="sidebar-server-status">● Supabase Nuvem</span>
                         </div>
                         <button class="btn-icon" id="btn-logout" title="Sair da Conta">
                             <i data-lucide="log-out" style="width:16px;height:16px;"></i>
@@ -1102,22 +1101,23 @@
                 </button>
             </div>
         </div>
-    <!-- Server Configuration Modal -->
+    <!-- Supabase Status Modal -->
     <div id="server-config-modal" class="modal-overlay hidden">
         <div class="modal-content modal-sm">
             <div class="modal-header">
-                <h2>Configurar Servidor (Ubuntu)</h2>
+                <h2>Banco de Dados Supabase</h2>
                 <button class="btn-close-modal" id="btn-close-server-config-modal">
                     <i data-lucide="x"></i>
                 </button>
             </div>
             <div class="modal-body">
                 <p class="text-sm text-muted mb-3">
-                    Informe o endereço do seu servidor Node.js/Cloudflare Tunnel rodando no seu notebook.
+                    Seus dados estão conectados e sincronizados na nuvem através do <strong>Supabase</strong>.
                 </p>
-                <div class="form-group">
-                    <label for="server-url-input">Endereço da API do Servidor</label>
-                    <input type="url" id="server-url-input" class="form-input" placeholder="https://seu-tunnel.trycloudflare.com ou http://localhost:3000">
+                <div style="background:rgba(255,255,255,0.04);padding:12px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:0.85rem;">
+                    <div style="margin-bottom:6px;"><strong>Status:</strong> <span style="color:var(--accent-emerald);">● Conectado (Nuvem)</span></div>
+                    <div style="margin-bottom:6px;word-break:break-all;"><strong>Projeto:</strong> https://mlrywfwxlfhkdlczjbcm.supabase.co</div>
+                    <div><strong>Segurança:</strong> Row Level Security (RLS) Ativo</div>
                 </div>
                 <div id="server-test-result" style="margin-bottom:12px;font-size:0.85rem;display:none;"></div>
             </div>
@@ -1126,7 +1126,7 @@
                     <i data-lucide="activity"></i>
                     Testar Conexão
                 </button>
-                <button type="button" class="btn btn-primary" id="btn-save-server-config">Salvar Endereço</button>
+                <button type="button" class="btn btn-primary" id="btn-save-server-config">Fechar</button>
             </div>
         </div>
     </div>
@@ -1139,6 +1139,6 @@
         // Initialize Lucide Icons
         lucide.createIcons();
     </script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

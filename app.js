@@ -2,6 +2,10 @@
 // EstoquePro - Sistema de Gerenciamento de Estoque
 // ============================================================
 
+import * as authService from './src/auth.js';
+import * as dbService from './src/db.js';
+import { supabaseClient } from './src/supabase.js';
+
 class InventoryApp {
   constructor() {
     this.STORAGE_KEYS = {
@@ -439,14 +443,22 @@ class InventoryApp {
 
   async initAuthAndServer() {
     this.updateAuthUI();
-    await this.checkServerHealth();
 
-    if (this.authToken) {
-      document.getElementById('auth-overlay')?.classList.add('hidden');
-      await this.fetchDataFromServer();
-    } else {
+    try {
+      const user = await authService.getCurrentUser();
+      if (user) {
+        this.currentUser = user;
+        this.updateAuthUI();
+        document.getElementById('auth-overlay')?.classList.add('hidden');
+        await this.fetchDataFromServer();
+      } else {
+        document.getElementById('auth-overlay')?.classList.remove('hidden');
+      }
+    } catch (e) {
+      console.warn('[Supabase] Erro ao verificar sessão:', e);
       document.getElementById('auth-overlay')?.classList.remove('hidden');
     }
+
     this.refreshIcons();
   }
 
@@ -457,69 +469,8 @@ class InventoryApp {
     }
   }
 
-  async checkServerHealth() {
-    const authStatusPill = document.getElementById('auth-server-status');
-    const sidebarStatusPill = document.getElementById('sidebar-server-status');
-
-    if (!this.serverUrl) {
-      this.isServerOnline = false;
-      if (authStatusPill) {
-        authStatusPill.className = 'server-status-pill offline';
-        authStatusPill.textContent = '● Servidor não configurado';
-      }
-      if (sidebarStatusPill) {
-        sidebarStatusPill.className = 'server-status-pill offline';
-        sidebarStatusPill.textContent = '● Não configurado';
-      }
-      return false;
-    }
-
-    if (authStatusPill) {
-      authStatusPill.className = 'server-status-pill checking';
-      authStatusPill.textContent = '● Verificando...';
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-      const res = await fetch(`${this.serverUrl}/api/health`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        this.isServerOnline = true;
-        if (authStatusPill) {
-          authStatusPill.className = 'server-status-pill online';
-          authStatusPill.textContent = '● Servidor Conectado';
-        }
-        if (sidebarStatusPill) {
-          sidebarStatusPill.className = 'server-status-pill online';
-          sidebarStatusPill.textContent = '● Servidor Online';
-        }
-        return true;
-      }
-    } catch (e) {
-      // Server is offline / unreachable
-    }
-
-    this.isServerOnline = false;
-    if (authStatusPill) {
-      authStatusPill.className = 'server-status-pill offline';
-      authStatusPill.textContent = '● Servidor Offline';
-    }
-    if (sidebarStatusPill) {
-      sidebarStatusPill.className = 'server-status-pill offline';
-      sidebarStatusPill.textContent = '● Servidor Offline';
-    }
-    return false;
-  }
-
   openServerConfigModal() {
-    const input = document.getElementById('server-url-input');
     const resultDiv = document.getElementById('server-test-result');
-    if (input) input.value = this.serverUrl;
     if (resultDiv) {
       resultDiv.style.display = 'none';
       resultDiv.innerHTML = '';
@@ -530,64 +481,30 @@ class InventoryApp {
   }
 
   async testServerConnection() {
-    const input = document.getElementById('server-url-input');
     const resultDiv = document.getElementById('server-test-result');
-    if (!input || !resultDiv) return;
+    if (!resultDiv) return;
 
-    let targetUrl = input.value.trim();
-    if (!targetUrl) {
-      resultDiv.style.display = 'block';
-      resultDiv.style.color = 'var(--accent-rose)';
-      resultDiv.textContent = 'Informe um endereço de servidor.';
-      return;
-    }
-
-    targetUrl = targetUrl.replace(/\/+$/, '');
     resultDiv.style.display = 'block';
     resultDiv.style.color = 'var(--accent-amber)';
-    resultDiv.textContent = 'Testando conexão com o servidor...';
+    resultDiv.textContent = 'Testando conexão com o Supabase...';
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const res = await fetch(`${targetUrl}/api/health`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        resultDiv.style.color = 'var(--accent-emerald)';
-        resultDiv.innerHTML = `✅ <strong>Conectado com sucesso!</strong> (${data.app || 'Servidor'} - ${data.database || 'SQLite'})`;
-        return true;
+      const { data, error } = await supabaseClient.from('user_data').select('count', { count: 'exact', head: true });
+      if (error && error.code !== 'PGRST116') {
+        throw new Error(error.message);
       }
+      resultDiv.style.color = 'var(--accent-emerald)';
+      resultDiv.innerHTML = '✅ <strong>Conexão com Supabase realizada com sucesso!</strong>';
+      return true;
     } catch (err) {
-      // Fall through to error message
+      resultDiv.style.color = 'var(--accent-rose)';
+      resultDiv.innerHTML = `❌ <strong>Erro ao conectar:</strong> ${err.message}`;
+      return false;
     }
-
-    resultDiv.style.color = 'var(--accent-rose)';
-    resultDiv.innerHTML = `❌ <strong>Não foi possível conectar.</strong> Verifique se o servidor está rodando no notebook e se a URL está correta.`;
-    return false;
   }
 
-  async saveServerConfig() {
-    const input = document.getElementById('server-url-input');
-    if (!input) return;
-
-    let targetUrl = input.value.trim().replace(/\/+$/, '');
-    if (!targetUrl) {
-      targetUrl = 'http://localhost:3000';
-    }
-
-    this.serverUrl = targetUrl;
-    localStorage.setItem(this.STORAGE_KEYS.SERVER_URL, this.serverUrl);
-
+  saveServerConfig() {
     this.closeModal('server-config-modal');
-    this.showToast('Endereço do servidor atualizado!', 'success');
-
-    await this.checkServerHealth();
-    if (this.authToken && this.isServerOnline) {
-      await this.fetchDataFromServer();
-    }
   }
 
   async handleLogin(e) {
@@ -604,40 +521,24 @@ class InventoryApp {
       return this.showToast('Preencha o usuário e a senha.', 'error');
     }
 
-    if (!this.isServerOnline) {
-      await this.checkServerHealth();
-    }
-
-    if (!this.isServerOnline) {
-      return this.showToast('Servidor offline. Verifique se o backend está rodando no notebook ou configure o endereço.', 'error');
-    }
-
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<span>Entrando...</span>';
     }
 
     try {
-      const res = await fetch(`${this.serverUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      const { user, error } = await authService.signIn(username, password);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Erro ao realizar login.');
+      if (error) {
+        throw new Error(error);
       }
 
-      this.authToken = data.token;
-      this.currentUser = data.user;
-      localStorage.setItem(this.STORAGE_KEYS.AUTH_TOKEN, this.authToken);
+      this.currentUser = user;
       localStorage.setItem(this.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
 
       this.updateAuthUI();
       document.getElementById('auth-overlay')?.classList.add('hidden');
-      this.showToast(`Bem-vindo, ${data.user.username}!`, 'success');
+      this.showToast(`Bem-vindo, ${user.username}!`, 'success');
 
       await this.fetchDataFromServer();
       this.renderCurrentSection();
@@ -668,16 +569,12 @@ class InventoryApp {
       return this.showToast('Preencha todos os campos.', 'error');
     }
 
+    if (password.length < 6) {
+      return this.showToast('A senha deve ter no mínimo 6 caracteres.', 'error');
+    }
+
     if (password !== confirm) {
       return this.showToast('As senhas digitadas não coincidem.', 'error');
-    }
-
-    if (!this.isServerOnline) {
-      await this.checkServerHealth();
-    }
-
-    if (!this.isServerOnline) {
-      return this.showToast('Servidor offline. Verifique se o backend está rodando no notebook ou configure o endereço.', 'error');
     }
 
     if (submitBtn) {
@@ -686,28 +583,20 @@ class InventoryApp {
     }
 
     try {
-      const res = await fetch(`${this.serverUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      const { user, error } = await authService.signUp(username, password);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Erro ao criar conta.');
+      if (error) {
+        throw new Error(error);
       }
 
-      this.authToken = data.token;
-      this.currentUser = data.user;
-      localStorage.setItem(this.STORAGE_KEYS.AUTH_TOKEN, this.authToken);
+      this.currentUser = user;
       localStorage.setItem(this.STORAGE_KEYS.USER, JSON.stringify(this.currentUser));
 
       this.updateAuthUI();
       document.getElementById('auth-overlay')?.classList.add('hidden');
-      this.showToast('Conta criada com sucesso!', 'success');
+      this.showToast('Conta criada com sucesso no Supabase!', 'success');
 
-      // Sync existing local data to new account if any exists
+      // Envia os dados locais existentes para a nova conta no banco
       await this.syncDataToServer();
       this.renderCurrentSection();
     } catch (err) {
@@ -721,12 +610,16 @@ class InventoryApp {
     }
   }
 
-  handleLogout() {
+  async handleLogout() {
     if (!confirm('Deseja realmente sair da sua conta?')) return;
 
-    this.authToken = null;
+    try {
+      await authService.signOut();
+    } catch (e) {
+      console.warn('Erro no signOut do Supabase:', e);
+    }
+
     this.currentUser = null;
-    localStorage.removeItem(this.STORAGE_KEYS.AUTH_TOKEN);
     localStorage.removeItem(this.STORAGE_KEYS.USER);
 
     this.updateAuthUI();
@@ -736,51 +629,38 @@ class InventoryApp {
   }
 
   async fetchDataFromServer() {
-    if (!this.authToken || !this.isServerOnline) return;
+    if (!this.currentUser?.id) return;
 
     try {
-      const res = await fetch(`${this.serverUrl}/api/data`, {
-        headers: {
-          'Authorization': `Bearer ${this.authToken}`
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
+      const data = await dbService.fetchData();
+      if (data) {
         this.products = Array.isArray(data.products) ? data.products : [];
         this.sales = Array.isArray(data.sales) ? data.sales : [];
         this.rentalProducts = Array.isArray(data.rentalProducts) ? data.rentalProducts : [];
         this.rentals = Array.isArray(data.rentals) ? data.rentals : [];
         this.loans = Array.isArray(data.loans) ? data.loans : [];
 
-        this.saveData(false); // save to cache without re-triggering sync
+        this.saveData(false); // Salva no cache local sem disparar sync novamente
         this.renderCurrentSection();
       }
     } catch (e) {
-      console.warn('Não foi possível carregar dados do servidor:', e);
+      console.warn('[Supabase] Não foi possível carregar dados do banco:', e);
     }
   }
 
   async syncDataToServer() {
-    if (!this.authToken || !this.isServerOnline) return;
+    if (!this.currentUser?.id) return;
 
     try {
-      await fetch(`${this.serverUrl}/api/data/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.authToken}`
-        },
-        body: JSON.stringify({
-          products: this.products,
-          sales: this.sales,
-          rentalProducts: this.rentalProducts,
-          rentals: this.rentals,
-          loans: this.loans
-        })
+      await dbService.syncData(this.currentUser.id, {
+        products: this.products,
+        sales: this.sales,
+        rentalProducts: this.rentalProducts,
+        rentals: this.rentals,
+        loans: this.loans
       });
     } catch (e) {
-      console.warn('Erro ao sincronizar com o servidor:', e);
+      console.warn('[Supabase] Erro ao sincronizar com banco:', e);
     }
   }
 
