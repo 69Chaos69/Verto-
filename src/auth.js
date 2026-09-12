@@ -53,7 +53,21 @@ export async function signUp(username, password) {
     if (error.message.includes('Password should be')) {
       return { user: null, error: 'A senha deve ter pelo menos 6 caracteres.' };
     }
+    if (error.message.includes('rate limit') || error.message.includes('over_email_send_rate_limit')) {
+      return {
+        user: null,
+        error: 'Limite de e-mails do Supabase atingido. Para usar o sistema com usuário e senha (sem e-mail real), acesse o painel do Supabase > Authentication > Providers > Email e DESATIVE a opção "Confirm email".'
+      };
+    }
     return { user: null, error: error.message };
+  }
+
+  // Se o Supabase tiver "Confirm email" ativado, o usuário é criado mas a sessão vem null
+  if (data?.user && !data?.session) {
+    return {
+      user: null,
+      error: 'Conta registrada, mas o Supabase está configurado para exigir confirmação de e-mail. Para permitir login direto sem e-mail real: acesse o painel do Supabase > Authentication > Providers > Email e DESATIVE a opção "Confirm email".'
+    };
   }
 
   // Extrai o username dos metadados para expor ao app
@@ -81,7 +95,13 @@ export async function signIn(username, password) {
 
   if (error) {
     if (error.message.includes('Invalid login credentials')) {
-      return { user: null, error: 'Usuário ou senha incorretos.' };
+      return { user: null, error: 'Usuário ou senha incorretos. Se ainda não tem cadastro, acesse a aba "Criar Conta".' };
+    }
+    if (error.message.includes('Email not confirmed')) {
+      return {
+        user: null,
+        error: 'E-mail não confirmado no Supabase. Para usar apenas Usuário e Senha, acesse o painel do Supabase > Authentication > Providers > Email e desative "Confirm email".'
+      };
     }
     return { user: null, error: error.message };
   }

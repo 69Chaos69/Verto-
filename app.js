@@ -427,6 +427,8 @@ class InventoryApp {
     const formLogin = document.getElementById('login-form');
     const formRegister = document.getElementById('register-form');
 
+    this.setAuthAlert('');
+
     if (tab === 'login') {
       tabLogin?.classList.add('active');
       tabRegister?.classList.remove('active');
@@ -438,6 +440,20 @@ class InventoryApp {
       formRegister?.classList.remove('hidden');
       formLogin?.classList.add('hidden');
     }
+    this.refreshIcons();
+  }
+
+  setAuthAlert(message, type = 'error') {
+    const alertEl = document.getElementById('auth-alert');
+    if (!alertEl) return;
+    if (!message) {
+      alertEl.classList.add('hidden');
+      alertEl.innerHTML = '';
+      return;
+    }
+    alertEl.className = `auth-alert ${type}`;
+    alertEl.innerHTML = `<i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle'}"></i><span>${message}</span>`;
+    alertEl.classList.remove('hidden');
     this.refreshIcons();
   }
 
@@ -509,6 +525,7 @@ class InventoryApp {
 
   async handleLogin(e) {
     e.preventDefault();
+    this.setAuthAlert('');
 
     const usernameInput = document.getElementById('login-username');
     const passwordInput = document.getElementById('login-password');
@@ -518,6 +535,7 @@ class InventoryApp {
     const password = passwordInput?.value;
 
     if (!username || !password) {
+      this.setAuthAlert('Preencha o usuário e a senha.', 'error');
       return this.showToast('Preencha o usuário e a senha.', 'error');
     }
 
@@ -543,6 +561,7 @@ class InventoryApp {
       await this.fetchDataFromServer();
       this.renderCurrentSection();
     } catch (err) {
+      this.setAuthAlert(err.message, 'error');
       this.showToast(err.message, 'error');
     } finally {
       if (submitBtn) {
@@ -555,6 +574,7 @@ class InventoryApp {
 
   async handleRegister(e) {
     e.preventDefault();
+    this.setAuthAlert('');
 
     const usernameInput = document.getElementById('register-username');
     const passwordInput = document.getElementById('register-password');
@@ -566,14 +586,17 @@ class InventoryApp {
     const confirm = confirmInput?.value;
 
     if (!username || !password) {
+      this.setAuthAlert('Preencha todos os campos.', 'error');
       return this.showToast('Preencha todos os campos.', 'error');
     }
 
     if (password.length < 6) {
+      this.setAuthAlert('A senha deve ter no mínimo 6 caracteres.', 'error');
       return this.showToast('A senha deve ter no mínimo 6 caracteres.', 'error');
     }
 
     if (password !== confirm) {
+      this.setAuthAlert('As senhas digitadas não coincidem.', 'error');
       return this.showToast('As senhas digitadas não coincidem.', 'error');
     }
 
@@ -600,6 +623,7 @@ class InventoryApp {
       await this.syncDataToServer();
       this.renderCurrentSection();
     } catch (err) {
+      this.setAuthAlert(err.message, 'error');
       this.showToast(err.message, 'error');
     } finally {
       if (submitBtn) {
@@ -1176,7 +1200,7 @@ class InventoryApp {
 
     // Validation
     if (!name) return this.showToast('Nome do produto é obrigatório.', 'error');
-    if (costPrice <= 0) return this.showToast('Preço de custo deve ser maior que zero.', 'error');
+    if (costPrice < 0) return this.showToast('Preço de custo não pode ser negativo.', 'error');
     if (sellPrice <= 0) return this.showToast('Preço de venda deve ser maior que zero.', 'error');
     if (taxRate < 0 || taxRate > 100) return this.showToast('Taxa deve ser entre 0 e 100%.', 'error');
     if (sellPrice <= costPrice) this.showToast('Atenção: preço de venda igual ou menor que o custo.', 'warning');

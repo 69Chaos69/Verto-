@@ -45,6 +45,8 @@
 
 html { scroll-behavior: smooth; }
 
+.hidden { display: none !important; }
+
 body {
   font-family: var(--font-family);
   background-color: var(--bg-dark);
@@ -1035,7 +1037,7 @@ input[type="date"] {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 2000;
+  z-index: 99999;
   pointer-events: none;
 }
 
@@ -1197,6 +1199,40 @@ input[type="date"] {
   background: var(--bg-glass-hover);
   color: var(--text-main);
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.auth-alert {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.825rem;
+  line-height: 1.4;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.auth-alert.error {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid var(--accent-rose);
+  color: #fca5a5;
+}
+
+.auth-alert.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--accent-emerald);
+  color: #6ee7b7;
+}
+
+.auth-alert i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.auth-alert span {
+  flex: 1;
 }
 
 .input-with-icon {
