@@ -821,6 +821,22 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   justify-content: flex-end;
 }
 
+.watchlist-link {
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-size: 0.82rem;
+  max-width: 240px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.watchlist-link:hover {
+  text-decoration: underline;
+}
+
 /* ============ SALES & LOANS LAYOUT ============ */
 .sales-layout, .loans-layout {
   display: grid;
@@ -1027,7 +1043,10 @@ input[type="date"] {
 .text-sm { font-size: 0.85rem; }
 .text-xs { font-size: 0.75rem; }
 .text-danger { color: var(--accent-rose); }
+.text-warning { color: var(--accent-amber); }
 .mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mb-2 { margin-bottom: 8px; }
 
 /* ============ TOAST NOTIFICATIONS ============ */
 .toast-container {

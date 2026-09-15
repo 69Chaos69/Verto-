@@ -6,7 +6,7 @@
 -- 1. Tabela de dados do usuário
 CREATE TABLE IF NOT EXISTS public.user_data (
   user_id  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  data_json JSONB NOT NULL DEFAULT '{"products":[],"sales":[],"rentalProducts":[],"rentals":[],"loans":[]}'::jsonb,
+  data_json JSONB NOT NULL DEFAULT '{"products":[],"sales":[],"rentalProducts":[],"rentals":[],"loans":[],"watchlist":[]}'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

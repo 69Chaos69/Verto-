@@ -14,6 +14,7 @@ class InventoryApp {
       RENTAL_PRODUCTS: 'estoquepro_rental_products',
       RENTALS: 'estoquepro_rentals',
       LOANS: 'estoquepro_loans',
+      WATCHLIST: 'estoquepro_watchlist',
       SERVER_URL: 'estoquepro_server_url',
       AUTH_TOKEN: 'estoquepro_auth_token',
       USER: 'estoquepro_user'
@@ -24,6 +25,7 @@ class InventoryApp {
     this.rentalProducts = [];
     this.rentals = [];
     this.loans = [];
+    this.watchlist = [];
     this.charts = {};
     this.currentSection = 'dashboard';
     this.deleteTargetId = null;
@@ -151,6 +153,24 @@ class InventoryApp {
     // Filters
     document.getElementById('category-filter')?.addEventListener('change', () => this.renderProductsTable());
     document.getElementById('sort-products')?.addEventListener('change', () => this.renderProductsTable());
+    document.getElementById('watchlist-purpose-filter')?.addEventListener('change', () => this.renderWatchlistTable());
+    document.getElementById('watchlist-status-filter')?.addEventListener('change', () => this.renderWatchlistTable());
+
+    // Watchlist Modal
+    document.getElementById('btn-new-watchlist-item')?.addEventListener('click', () => this.openWatchlistModal());
+    document.getElementById('btn-close-watchlist-modal')?.addEventListener('click', () => this.closeModal('watchlist-modal'));
+    document.getElementById('btn-cancel-watchlist')?.addEventListener('click', () => this.closeModal('watchlist-modal'));
+    document.getElementById('watchlist-form')?.addEventListener('submit', (e) => this.handleWatchlistSubmit(e));
+
+    const watchlistTableBody = document.getElementById('watchlist-table-body');
+    if (watchlistTableBody) {
+      watchlistTableBody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.btn-edit-watchlist');
+        const deleteBtn = e.target.closest('.btn-delete-watchlist');
+        if (editBtn) this.openWatchlistModal(editBtn.dataset.id);
+        if (deleteBtn) this.deleteWatchlistItem(deleteBtn.dataset.id);
+      });
+    }
 
     // Sale form
     const saleForm = document.getElementById('new-sale-form');
@@ -357,7 +377,8 @@ class InventoryApp {
       sales: 'Vendas',
       reports: 'Relatórios',
       rental: 'Aluguel',
-      loans: 'Empréstimos'
+      loans: 'Empréstimos',
+      watchlist: 'Lista de Observação'
     };
     const titleEl = document.getElementById('section-title');
     if (titleEl) titleEl.textContent = titles[sectionId] || 'Dashboard';
@@ -372,6 +393,9 @@ class InventoryApp {
         break;
       case 'products':
         this.renderProductsTable();
+        break;
+      case 'watchlist':
+        this.renderWatchlistTable();
         break;
       case 'sales':
         this.renderSalesSection();
@@ -398,12 +422,14 @@ class InventoryApp {
       this.rentalProducts = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.RENTAL_PRODUCTS)) || [];
       this.rentals = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.RENTALS)) || [];
       this.loans = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.LOANS)) || [];
+      this.watchlist = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.WATCHLIST)) || [];
     } catch {
       this.products = [];
       this.sales = [];
       this.rentalProducts = [];
       this.rentals = [];
       this.loans = [];
+      this.watchlist = [];
     }
   }
 
@@ -413,6 +439,7 @@ class InventoryApp {
     localStorage.setItem(this.STORAGE_KEYS.RENTAL_PRODUCTS, JSON.stringify(this.rentalProducts));
     localStorage.setItem(this.STORAGE_KEYS.RENTALS, JSON.stringify(this.rentals));
     localStorage.setItem(this.STORAGE_KEYS.LOANS, JSON.stringify(this.loans));
+    localStorage.setItem(this.STORAGE_KEYS.WATCHLIST, JSON.stringify(this.watchlist));
 
     if (syncToServer) {
       this.syncDataToServer();
@@ -663,6 +690,7 @@ class InventoryApp {
         this.rentalProducts = Array.isArray(data.rentalProducts) ? data.rentalProducts : [];
         this.rentals = Array.isArray(data.rentals) ? data.rentals : [];
         this.loans = Array.isArray(data.loans) ? data.loans : [];
+        this.watchlist = Array.isArray(data.watchlist) ? data.watchlist : [];
 
         this.saveData(false); // Salva no cache local sem disparar sync novamente
         this.renderCurrentSection();
@@ -681,7 +709,8 @@ class InventoryApp {
         sales: this.sales,
         rentalProducts: this.rentalProducts,
         rentals: this.rentals,
-        loans: this.loans
+        loans: this.loans,
+        watchlist: this.watchlist
       });
     } catch (e) {
       console.warn('[Supabase] Erro ao sincronizar com banco:', e);
@@ -697,7 +726,8 @@ class InventoryApp {
       sales: this.sales,
       rentalProducts: this.rentalProducts,
       rentals: this.rentals,
-      loans: this.loans
+      loans: this.loans,
+      watchlist: this.watchlist
     };
 
     const jsonStr = JSON.stringify(data, null, 2);
@@ -745,12 +775,13 @@ class InventoryApp {
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target.result);
-        if (parsed && (Array.isArray(parsed.products) || Array.isArray(parsed.rentalProducts) || Array.isArray(parsed.loans))) {
+        if (parsed && (Array.isArray(parsed.products) || Array.isArray(parsed.rentalProducts) || Array.isArray(parsed.loans) || Array.isArray(parsed.watchlist))) {
           this.products = Array.isArray(parsed.products) ? parsed.products : [];
           this.sales = Array.isArray(parsed.sales) ? parsed.sales : [];
           this.rentalProducts = Array.isArray(parsed.rentalProducts) ? parsed.rentalProducts : [];
           this.rentals = Array.isArray(parsed.rentals) ? parsed.rentals : [];
           this.loans = Array.isArray(parsed.loans) ? parsed.loans : [];
+          this.watchlist = Array.isArray(parsed.watchlist) ? parsed.watchlist : [];
           this.saveData();
           this.renderCurrentSection();
           this.showToast('Dados carregados com sucesso a partir do arquivo do PC!', 'success');
@@ -771,6 +802,7 @@ class InventoryApp {
     this.rentalProducts = [];
     this.rentals = [];
     this.loans = [];
+    this.watchlist = [];
     this.saveData();
   }
 
@@ -1274,10 +1306,205 @@ class InventoryApp {
     this.rentalProducts = [];
     this.rentals = [];
     this.loans = [];
+    this.watchlist = [];
     this.saveData();
     this.closeModal('clear-modal');
     this.renderCurrentSection();
     this.showToast('Todos os dados foram limpos.', 'success');
+  }
+
+  // ============ WATCHLIST ============
+
+  getWatchlistPurposeLabel(purpose) {
+    return purpose === 'pre_sale' ? 'Cuidado pré-venda' : 'Possível compra';
+  }
+
+  getWatchlistPriorityMeta(priority) {
+    if (priority === 'high') return { label: 'Alta', className: 'badge-danger' };
+    if (priority === 'low') return { label: 'Baixa', className: 'badge-secondary' };
+    return { label: 'Média', className: 'badge-warning' };
+  }
+
+  getWatchlistStatusMeta(status) {
+    switch (status) {
+      case 'waiting': return { label: 'Aguardando', className: 'badge-warning' };
+      case 'ready': return { label: 'Pronto', className: 'badge-success' };
+      case 'archived': return { label: 'Arquivado', className: 'badge-secondary' };
+      default: return { label: 'Observando', className: 'badge-info' };
+    }
+  }
+
+  isSafeHttpUrl(value) {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  renderWatchlistTable(searchTerm = '') {
+    const tbody = document.getElementById('watchlist-table-body');
+    if (!tbody) return;
+
+    const purposeFilter = document.getElementById('watchlist-purpose-filter')?.value || 'all';
+    const statusFilter = document.getElementById('watchlist-status-filter')?.value || 'all';
+    const term = (searchTerm || document.getElementById('global-search')?.value || '').trim().toLowerCase();
+
+    let filtered = (this.watchlist || []).filter(item => {
+      const matchPurpose = purposeFilter === 'all' || item.purpose === purposeFilter;
+      const matchStatus = statusFilter === 'all' || item.status === statusFilter;
+      const matchSearch = !term ||
+        (item.name || '').toLowerCase().includes(term) ||
+        (item.productUrl || '').toLowerCase().includes(term) ||
+        (item.notes || '').toLowerCase().includes(term);
+      return matchPurpose && matchStatus && matchSearch;
+    });
+
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    filtered.sort((a, b) => {
+      const pa = priorityOrder[a.priority] ?? 1;
+      const pb = priorityOrder[b.priority] ?? 1;
+      if (pa !== pb) return pa - pb;
+      return (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || '');
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum item na lista de observação.</td></tr>';
+      this.refreshIcons();
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(item => {
+      const purposeLabel = this.getWatchlistPurposeLabel(item.purpose);
+      const priority = this.getWatchlistPriorityMeta(item.priority);
+      const status = this.getWatchlistStatusMeta(item.status);
+      const hasSafeUrl = this.isSafeHttpUrl(item.productUrl);
+      const displayUrl = hasSafeUrl ? item.productUrl.replace(/^https?:\/\//i, '') : '';
+      const linkHtml = hasSafeUrl
+        ? `<a class="watchlist-link" href="${item.productUrl}" target="_blank" rel="noopener noreferrer" title="${item.productUrl}">${displayUrl}</a>`
+        : '<span class="text-muted">Link inválido</span>';
+      const priceHtml = item.referencePrice > 0 ? this.formatCurrency(item.referencePrice) : '—';
+      const dateHtml = item.createdAt ? this.formatDate(item.createdAt).split(',')[0] : '—';
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:600;color:var(--text-main);">${item.name}</div>
+            ${item.notes ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">${item.notes}</div>` : ''}
+          </td>
+          <td>${linkHtml}</td>
+          <td>${purposeLabel}</td>
+          <td><span class="badge ${priority.className}">${priority.label}</span></td>
+          <td style="font-weight:600;">${priceHtml}</td>
+          <td><span class="badge ${status.className}">${status.label}</span></td>
+          <td style="color:var(--text-dim);font-size:0.85rem;">${dateHtml}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn-icon edit btn-edit-watchlist" data-id="${item.id}" title="Editar">
+                <i data-lucide="edit-2" style="width:16px;height:16px;"></i>
+              </button>
+              <button class="btn-icon delete btn-delete-watchlist" data-id="${item.id}" title="Excluir">
+                <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    this.refreshIcons();
+  }
+
+  openWatchlistModal(id = null) {
+    const modal = document.getElementById('watchlist-modal');
+    const title = document.getElementById('watchlist-modal-title');
+    const form = document.getElementById('watchlist-form');
+    const idField = document.getElementById('watchlist-id');
+    if (!modal || !form || !idField) return;
+
+    form.reset();
+    idField.value = '';
+    document.getElementById('watchlist-purpose').value = 'buy';
+    document.getElementById('watchlist-priority').value = 'medium';
+    document.getElementById('watchlist-status').value = 'watching';
+
+    if (id) {
+      const item = this.watchlist.find(x => x.id === id);
+      if (item) {
+        title.textContent = 'Editar Item da Lista';
+        idField.value = item.id;
+        document.getElementById('watchlist-name').value = item.name || '';
+        document.getElementById('watchlist-url').value = item.productUrl || '';
+        document.getElementById('watchlist-purpose').value = item.purpose || 'buy';
+        document.getElementById('watchlist-priority').value = item.priority || 'medium';
+        document.getElementById('watchlist-price').value = item.referencePrice || '';
+        document.getElementById('watchlist-status').value = item.status || 'watching';
+        document.getElementById('watchlist-notes').value = item.notes || '';
+      }
+    } else {
+      title.textContent = 'Novo Item na Lista';
+    }
+
+    modal.classList.remove('hidden');
+    this.refreshIcons();
+  }
+
+  handleWatchlistSubmit(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('watchlist-id').value;
+    const name = document.getElementById('watchlist-name').value.trim();
+    const productUrl = document.getElementById('watchlist-url').value.trim();
+    const purpose = document.getElementById('watchlist-purpose').value;
+    const priority = document.getElementById('watchlist-priority').value;
+    const referencePrice = parseFloat(document.getElementById('watchlist-price').value) || 0;
+    const status = document.getElementById('watchlist-status').value;
+    const notes = document.getElementById('watchlist-notes').value.trim();
+
+    if (!name) return this.showToast('Nome do produto é obrigatório.', 'error');
+    if (!productUrl) return this.showToast('O link do produto é obrigatório.', 'error');
+    if (!this.isSafeHttpUrl(productUrl)) {
+      return this.showToast('Informe um link válido começando com http:// ou https://.', 'error');
+    }
+    if (referencePrice < 0) return this.showToast('O preço de referência não pode ser negativo.', 'error');
+
+    const now = new Date().toISOString();
+
+    if (id) {
+      const index = this.watchlist.findIndex(item => item.id === id);
+      if (index !== -1) {
+        this.watchlist[index] = {
+          ...this.watchlist[index],
+          name, productUrl, purpose, priority, referencePrice, status, notes,
+          updatedAt: now
+        };
+        this.showToast('Item da lista atualizado!', 'success');
+      }
+    } else {
+      this.watchlist.push({
+        id: this.generateId(),
+        name, productUrl, purpose, priority, referencePrice, status, notes,
+        createdAt: now,
+        updatedAt: now
+      });
+      this.showToast('Item adicionado à lista de observação!', 'success');
+    }
+
+    this.saveData();
+    this.closeModal('watchlist-modal');
+    this.renderWatchlistTable();
+  }
+
+  deleteWatchlistItem(id) {
+    const item = this.watchlist.find(x => x.id === id);
+    if (!item) return;
+    if (!confirm(`Excluir "${item.name}" da lista de observação?`)) return;
+
+    this.watchlist = this.watchlist.filter(x => x.id !== id);
+    this.saveData();
+    this.renderWatchlistTable();
+    this.showToast('Item removido da lista de observação.', 'success');
   }
 
   // ============ ACCESS DATA & REFUNDS ============
@@ -1698,6 +1925,8 @@ class InventoryApp {
       this.renderProductsTable(term);
     } else if (this.currentSection === 'sales') {
       this.renderSalesHistory(term);
+    } else if (this.currentSection === 'watchlist') {
+      this.renderWatchlistTable(term);
     } else if (term.length >= 2) {
       this.navigateTo('products');
       setTimeout(() => this.renderProductsTable(term), 50);

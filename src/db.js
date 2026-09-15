@@ -15,7 +15,8 @@ const EMPTY_DATA = {
   sales: [],
   rentalProducts: [],
   rentals: [],
-  loans: []
+  loans: [],
+  watchlist: []
 };
 
 /**
@@ -48,7 +49,7 @@ export async function fetchData() {
  * Salva/sincroniza todos os dados do usuário autenticado no Supabase.
  * Usa UPSERT para criar ou atualizar a linha.
  * @param {string} userId - UUID do usuário autenticado
- * @param {object} payload - { products, sales, rentalProducts, rentals, loans }
+ * @param {object} payload - { products, sales, rentalProducts, rentals, loans, watchlist }
  * @returns {Promise<{ success: boolean, error: string|null }>}
  */
 export async function syncData(userId, payload) {
@@ -57,7 +58,8 @@ export async function syncData(userId, payload) {
     sales:          Array.isArray(payload.sales)          ? payload.sales          : [],
     rentalProducts: Array.isArray(payload.rentalProducts) ? payload.rentalProducts : [],
     rentals:        Array.isArray(payload.rentals)        ? payload.rentals        : [],
-    loans:          Array.isArray(payload.loans)          ? payload.loans          : []
+    loans:          Array.isArray(payload.loans)          ? payload.loans          : [],
+    watchlist:      Array.isArray(payload.watchlist)      ? payload.watchlist      : []
   };
 
   const { error } = await supabaseClient

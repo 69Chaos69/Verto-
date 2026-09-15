@@ -125,6 +125,12 @@
                         <span>Produtos</span>
                     </a>
                 </li>
+                <li class="nav-item" data-target="watchlist-section">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="eye"></i>
+                        <span>Lista de Observação</span>
+                    </a>
+                </li>
                 <li class="nav-item" data-target="sales-section">
                     <a href="#" class="nav-link">
                         <i data-lucide="shopping-cart"></i>
@@ -365,6 +371,56 @@
                         </thead>
                         <tbody id="products-table-body">
                             <!-- Product rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Watchlist Section -->
+            <section id="watchlist-section" class="content-section hidden">
+                <div class="action-bar">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <i data-lucide="filter" class="filter-icon"></i>
+                            <select id="watchlist-purpose-filter" class="form-select">
+                                <option value="all">Todas as finalidades</option>
+                                <option value="buy">Possível compra</option>
+                                <option value="pre_sale">Cuidado pré-venda</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <i data-lucide="flag" class="filter-icon"></i>
+                            <select id="watchlist-status-filter" class="form-select">
+                                <option value="all">Todos os status</option>
+                                <option value="watching">Observando</option>
+                                <option value="waiting">Aguardando</option>
+                                <option value="ready">Pronto</option>
+                                <option value="archived">Arquivado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="btn-new-watchlist-item">
+                        <i data-lucide="plus"></i>
+                        Novo Item
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Link</th>
+                                <th>Finalidade</th>
+                                <th>Prioridade</th>
+                                <th>Preço Ref.</th>
+                                <th>Status</th>
+                                <th>Cadastrado</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="watchlist-table-body">
+                            <!-- injected by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -788,6 +844,76 @@
         </div>
     </div>
 
+    <!-- Watchlist Item Modal -->
+    <div id="watchlist-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="watchlist-modal-title">Novo Item na Lista</h2>
+                <button class="btn-close-modal" id="btn-close-watchlist-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="watchlist-form">
+                    <input type="hidden" id="watchlist-id">
+
+                    <div class="form-group">
+                        <label for="watchlist-name">Nome do Produto</label>
+                        <input type="text" id="watchlist-name" class="form-input" placeholder="Ex: Conta Steam Premium" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="watchlist-url">Link do Produto</label>
+                        <input type="url" id="watchlist-url" class="form-input" placeholder="https://..." required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="watchlist-purpose">Finalidade</label>
+                            <select id="watchlist-purpose" class="form-input" required>
+                                <option value="buy">Possível compra</option>
+                                <option value="pre_sale">Cuidado pré-venda</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="watchlist-priority">Prioridade</label>
+                            <select id="watchlist-priority" class="form-input" required>
+                                <option value="medium">Média</option>
+                                <option value="high">Alta</option>
+                                <option value="low">Baixa</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="watchlist-price">Preço de Referência (R$) <span class="optional">(opcional)</span></label>
+                            <input type="number" id="watchlist-price" class="form-input" step="0.01" min="0" placeholder="0,00">
+                        </div>
+                        <div class="form-group">
+                            <label for="watchlist-status">Status</label>
+                            <select id="watchlist-status" class="form-input" required>
+                                <option value="watching">Observando</option>
+                                <option value="waiting">Aguardando</option>
+                                <option value="ready">Pronto</option>
+                                <option value="archived">Arquivado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="watchlist-notes">Notas / Cuidados <span class="optional">(opcional)</span></label>
+                        <textarea id="watchlist-notes" class="form-input" rows="3" placeholder="O que conferir antes de comprar ou vender, risco, pendências..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-watchlist">Cancelar</button>
+                <button type="submit" form="watchlist-form" class="btn btn-primary" id="btn-save-watchlist">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="modal-overlay hidden">
         <div class="modal-content modal-sm">
@@ -1103,6 +1229,7 @@
                 </button>
             </div>
         </div>
+    </div>
     <!-- Supabase Status Modal -->
     <div id="server-config-modal" class="modal-overlay hidden">
         <div class="modal-content modal-sm">

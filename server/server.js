@@ -108,7 +108,8 @@ app.post('/api/auth/register', async (req, res) => {
       sales: [],
       rentalProducts: [],
       rentals: [],
-      loans: []
+      loans: [],
+      watchlist: []
     });
     db.prepare('INSERT INTO user_data (user_id, data_json, updated_at) VALUES (?, ?, ?)').run(userId, initialData, now);
 
@@ -179,7 +180,8 @@ app.get('/api/data', authenticateToken, (req, res) => {
         sales: [],
         rentalProducts: [],
         rentals: [],
-        loans: []
+        loans: [],
+        watchlist: []
       });
     }
 
@@ -197,14 +199,15 @@ app.get('/api/data', authenticateToken, (req, res) => {
 // Sincronizar / Salvar todos os dados do usuário logado
 app.post('/api/data/sync', authenticateToken, (req, res) => {
   try {
-    const { products, sales, rentalProducts, rentals, loans } = req.body;
+    const { products, sales, rentalProducts, rentals, loans, watchlist } = req.body;
 
     const dataToSave = {
       products: Array.isArray(products) ? products : [],
       sales: Array.isArray(sales) ? sales : [],
       rentalProducts: Array.isArray(rentalProducts) ? rentalProducts : [],
       rentals: Array.isArray(rentals) ? rentals : [],
-      loans: Array.isArray(loans) ? loans : []
+      loans: Array.isArray(loans) ? loans : [],
+      watchlist: Array.isArray(watchlist) ? watchlist : []
     };
 
     const dataJson = JSON.stringify(dataToSave);
