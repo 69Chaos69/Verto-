@@ -398,6 +398,15 @@
                                 <option value="archived">Arquivado</option>
                             </select>
                         </div>
+                        <div class="filter-group">
+                            <i data-lucide="arrow-up-down" class="filter-icon"></i>
+                            <select id="watchlist-sort" class="form-select">
+                                <option value="relevance">Relevância</option>
+                                <option value="value-asc">Menor valor</option>
+                                <option value="value-desc">Maior valor</option>
+                                <option value="purpose">Finalidade</option>
+                            </select>
+                        </div>
                     </div>
                     <button class="btn btn-primary" id="btn-new-watchlist-item">
                         <i data-lucide="plus"></i>
@@ -414,6 +423,8 @@
                                 <th>Finalidade</th>
                                 <th>Prioridade</th>
                                 <th>Preço Ref.</th>
+                                <th>Possível Venda</th>
+                                <th>Lucro Possível</th>
                                 <th>Status</th>
                                 <th>Cadastrado</th>
                                 <th>Ações</th>
@@ -863,8 +874,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="watchlist-url">Link do Produto</label>
-                        <input type="url" id="watchlist-url" class="form-input" placeholder="https://..." required>
+                        <label for="watchlist-url">Link de Referência <span class="optional">(opcional para pré-venda)</span></label>
+                        <input type="url" id="watchlist-url" class="form-input" placeholder="https://...">
                     </div>
 
                     <div class="form-row">
@@ -885,10 +896,14 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
+                    <div class="form-row-3">
                         <div class="form-group">
                             <label for="watchlist-price">Preço de Referência (R$) <span class="optional">(opcional)</span></label>
                             <input type="number" id="watchlist-price" class="form-input" step="0.01" min="0" placeholder="0,00">
+                        </div>
+                        <div class="form-group">
+                            <label for="watchlist-sale-price">Possível Preço de Venda (R$) <span class="optional">(opcional)</span></label>
+                            <input type="number" id="watchlist-sale-price" class="form-input" step="0.01" min="0" placeholder="0,00">
                         </div>
                         <div class="form-group">
                             <label for="watchlist-status">Status</label>
@@ -902,8 +917,18 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="watchlist-description">Descrição do Anúncio <span class="optional">(opcional)</span></label>
+                        <textarea id="watchlist-description" class="form-input" rows="3" placeholder="Descrição usada no anúncio do produto..."></textarea>
+                    </div>
+
+                    <div class="form-group">
                         <label for="watchlist-notes">Notas / Cuidados <span class="optional">(opcional)</span></label>
                         <textarea id="watchlist-notes" class="form-input" rows="3" placeholder="O que conferir antes de comprar ou vender, risco, pendências..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="watchlist-access-data">Dados de Acesso <span class="optional">(opcional para compras)</span></label>
+                        <textarea id="watchlist-access-data" class="form-input" rows="3" placeholder="Login, senha, chave ou outras informações de acesso..."></textarea>
                     </div>
                 </form>
             </div>

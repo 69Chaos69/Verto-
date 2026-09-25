@@ -1112,7 +1112,7 @@ input[type="date"] {
   .top-header { padding: 0 16px; }
   .content-section { padding: 20px 16px; }
   .search-input { width: 200px; }
-  .form-row { grid-template-columns: 1fr; }
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
 }
 
 /* ============ PRINT ============ */
@@ -1397,4 +1397,3 @@ input[type="date"] {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-

@@ -155,6 +155,7 @@ class InventoryApp {
     document.getElementById('sort-products')?.addEventListener('change', () => this.renderProductsTable());
     document.getElementById('watchlist-purpose-filter')?.addEventListener('change', () => this.renderWatchlistTable());
     document.getElementById('watchlist-status-filter')?.addEventListener('change', () => this.renderWatchlistTable());
+    document.getElementById('watchlist-sort')?.addEventListener('change', () => this.renderWatchlistTable());
 
     // Watchlist Modal
     document.getElementById('btn-new-watchlist-item')?.addEventListener('click', () => this.openWatchlistModal());
@@ -167,8 +168,10 @@ class InventoryApp {
       watchlistTableBody.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.btn-edit-watchlist');
         const deleteBtn = e.target.closest('.btn-delete-watchlist');
+        const stockBtn = e.target.closest('.btn-move-watchlist-to-stock');
         if (editBtn) this.openWatchlistModal(editBtn.dataset.id);
         if (deleteBtn) this.deleteWatchlistItem(deleteBtn.dataset.id);
+        if (stockBtn) this.moveWatchlistItemToStock(stockBtn.dataset.id);
       });
     }
 
@@ -1349,6 +1352,7 @@ class InventoryApp {
 
     const purposeFilter = document.getElementById('watchlist-purpose-filter')?.value || 'all';
     const statusFilter = document.getElementById('watchlist-status-filter')?.value || 'all';
+    const sortValue = document.getElementById('watchlist-sort')?.value || 'relevance';
     const term = (searchTerm || document.getElementById('global-search')?.value || '').trim().toLowerCase();
 
     let filtered = (this.watchlist || []).filter(item => {
@@ -1357,12 +1361,17 @@ class InventoryApp {
       const matchSearch = !term ||
         (item.name || '').toLowerCase().includes(term) ||
         (item.productUrl || '').toLowerCase().includes(term) ||
-        (item.notes || '').toLowerCase().includes(term);
+        (item.description || '').toLowerCase().includes(term) ||
+        (item.notes || '').toLowerCase().includes(term) ||
+        (item.accessData || '').toLowerCase().includes(term);
       return matchPurpose && matchStatus && matchSearch;
     });
 
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     filtered.sort((a, b) => {
+      if (sortValue === 'value-asc') return (a.referencePrice || 0) - (b.referencePrice || 0);
+      if (sortValue === 'value-desc') return (b.referencePrice || 0) - (a.referencePrice || 0);
+      if (sortValue === 'purpose') return this.getWatchlistPurposeLabel(a.purpose).localeCompare(this.getWatchlistPurposeLabel(b.purpose), 'pt-BR');
       const pa = priorityOrder[a.priority] ?? 1;
       const pb = priorityOrder[b.priority] ?? 1;
       if (pa !== pb) return pa - pb;
@@ -1370,7 +1379,7 @@ class InventoryApp {
     });
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum item na lista de observação.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Nenhum item na lista de observação.</td></tr>';
       this.refreshIcons();
       return;
     }
@@ -1383,24 +1392,35 @@ class InventoryApp {
       const displayUrl = hasSafeUrl ? item.productUrl.replace(/^https?:\/\//i, '') : '';
       const linkHtml = hasSafeUrl
         ? `<a class="watchlist-link" href="${item.productUrl}" target="_blank" rel="noopener noreferrer" title="${item.productUrl}">${displayUrl}</a>`
-        : '<span class="text-muted">Link inválido</span>';
+        : '<span class="text-muted">—</span>';
       const priceHtml = item.referencePrice > 0 ? this.formatCurrency(item.referencePrice) : '—';
+      const salePriceHtml = item.possibleSalePrice > 0 ? this.formatCurrency(item.possibleSalePrice) : '—';
+      const possibleProfit = (item.possibleSalePrice || 0) - (item.referencePrice || 0);
+      const possibleProfitPercent = item.referencePrice > 0 ? (possibleProfit / item.referencePrice) * 100 : null;
+      const profitHtml = item.possibleSalePrice > 0
+        ? `${this.formatCurrency(possibleProfit)}${possibleProfitPercent === null ? '' : ` (${possibleProfitPercent.toFixed(1)}%)`}`
+        : '—';
       const dateHtml = item.createdAt ? this.formatDate(item.createdAt).split(',')[0] : '—';
 
       return `
         <tr>
           <td>
             <div style="font-weight:600;color:var(--text-main);">${item.name}</div>
-            ${item.notes ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">${item.notes}</div>` : ''}
+            ${item.description ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">${item.description}</div>` : ''}
           </td>
           <td>${linkHtml}</td>
           <td>${purposeLabel}</td>
           <td><span class="badge ${priority.className}">${priority.label}</span></td>
           <td style="font-weight:600;">${priceHtml}</td>
+          <td style="font-weight:600;">${salePriceHtml}</td>
+          <td style="font-weight:600;color:${possibleProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${profitHtml}</td>
           <td><span class="badge ${status.className}">${status.label}</span></td>
           <td style="color:var(--text-dim);font-size:0.85rem;">${dateHtml}</td>
           <td>
             <div class="actions-cell">
+              <button class="btn-icon view btn-move-watchlist-to-stock" data-id="${item.id}" title="Enviar para o estoque">
+                <i data-lucide="package-plus" style="width:16px;height:16px;"></i>
+              </button>
               <button class="btn-icon edit btn-edit-watchlist" data-id="${item.id}" title="Editar">
                 <i data-lucide="edit-2" style="width:16px;height:16px;"></i>
               </button>
@@ -1439,8 +1459,11 @@ class InventoryApp {
         document.getElementById('watchlist-purpose').value = item.purpose || 'buy';
         document.getElementById('watchlist-priority').value = item.priority || 'medium';
         document.getElementById('watchlist-price').value = item.referencePrice || '';
+        document.getElementById('watchlist-sale-price').value = item.possibleSalePrice || '';
         document.getElementById('watchlist-status').value = item.status || 'watching';
+        document.getElementById('watchlist-description').value = item.description || '';
         document.getElementById('watchlist-notes').value = item.notes || '';
+        document.getElementById('watchlist-access-data').value = item.accessData || '';
       }
     } else {
       title.textContent = 'Novo Item na Lista';
@@ -1459,15 +1482,20 @@ class InventoryApp {
     const purpose = document.getElementById('watchlist-purpose').value;
     const priority = document.getElementById('watchlist-priority').value;
     const referencePrice = parseFloat(document.getElementById('watchlist-price').value) || 0;
+    const possibleSalePrice = parseFloat(document.getElementById('watchlist-sale-price').value) || 0;
     const status = document.getElementById('watchlist-status').value;
+    const description = document.getElementById('watchlist-description').value.trim();
     const notes = document.getElementById('watchlist-notes').value.trim();
+    const accessData = document.getElementById('watchlist-access-data').value.trim();
 
     if (!name) return this.showToast('Nome do produto é obrigatório.', 'error');
-    if (!productUrl) return this.showToast('O link do produto é obrigatório.', 'error');
-    if (!this.isSafeHttpUrl(productUrl)) {
+    if (purpose !== 'pre_sale' && !productUrl) return this.showToast('O link de referência é obrigatório para possíveis compras.', 'error');
+    if (productUrl && !this.isSafeHttpUrl(productUrl)) {
       return this.showToast('Informe um link válido começando com http:// ou https://.', 'error');
     }
     if (referencePrice < 0) return this.showToast('O preço de referência não pode ser negativo.', 'error');
+    if (possibleSalePrice < 0) return this.showToast('O possível preço de venda não pode ser negativo.', 'error');
+    if (purpose === 'pre_sale' && !accessData) return this.showToast('Informe os dados de acesso para contas em pré-venda.', 'error');
 
     const now = new Date().toISOString();
 
@@ -1476,7 +1504,7 @@ class InventoryApp {
       if (index !== -1) {
         this.watchlist[index] = {
           ...this.watchlist[index],
-          name, productUrl, purpose, priority, referencePrice, status, notes,
+          name, productUrl, purpose, priority, referencePrice, possibleSalePrice, status, description, notes, accessData,
           updatedAt: now
         };
         this.showToast('Item da lista atualizado!', 'success');
@@ -1484,7 +1512,7 @@ class InventoryApp {
     } else {
       this.watchlist.push({
         id: this.generateId(),
-        name, productUrl, purpose, priority, referencePrice, status, notes,
+        name, productUrl, purpose, priority, referencePrice, possibleSalePrice, status, description, notes, accessData,
         createdAt: now,
         updatedAt: now
       });
@@ -1505,6 +1533,36 @@ class InventoryApp {
     this.saveData();
     this.renderWatchlistTable();
     this.showToast('Item removido da lista de observação.', 'success');
+  }
+
+  moveWatchlistItemToStock(id) {
+    const item = this.watchlist.find(x => x.id === id);
+    if (!item) return;
+    if (!item.possibleSalePrice || item.possibleSalePrice <= 0) {
+      return this.showToast('Informe um possível preço de venda antes de enviar o item ao estoque.', 'error');
+    }
+    if (!confirm(`Enviar "${item.name}" para o estoque?`)) return;
+
+    const now = new Date().toISOString();
+    this.products.push({
+      id: this.generateId(),
+      code: this.generateCode(),
+      name: item.name,
+      category: item.purpose === 'pre_sale' ? 'Contas & Acessos' : 'Outros Digitais',
+      quantity: 1,
+      minStock: 0,
+      costPrice: item.referencePrice || 0,
+      sellPrice: item.possibleSalePrice,
+      taxRate: 0,
+      description: item.description || item.notes || '',
+      accessData: item.accessData || '',
+      createdAt: now,
+      updatedAt: now
+    });
+    this.watchlist = this.watchlist.filter(x => x.id !== id);
+    this.saveData();
+    this.renderWatchlistTable();
+    this.showToast('Item enviado para o estoque com sucesso!', 'success');
   }
 
   // ============ ACCESS DATA & REFUNDS ============
