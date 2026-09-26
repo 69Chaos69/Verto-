@@ -32,6 +32,7 @@ class InventoryApp {
     this.refundTargetId = null;
     this.closeRentalTargetId = null;
     this.loanPaymentTargetId = null;
+    this.loanIncreaseTargetId = null;
 
     // Server & Auth State
     this.serverUrl = localStorage.getItem(this.STORAGE_KEYS.SERVER_URL) || '';
@@ -279,13 +280,20 @@ class InventoryApp {
     document.getElementById('btn-cancel-loan-payment')?.addEventListener('click', () => this.closeModal('loan-payment-modal'));
     document.getElementById('loan-payment-form')?.addEventListener('submit', (e) => this.handleLoanPaymentSubmit(e));
 
+    // Loan Debt Increase Modal
+    document.getElementById('btn-close-loan-increase-modal')?.addEventListener('click', () => this.closeModal('loan-increase-modal'));
+    document.getElementById('btn-cancel-loan-increase')?.addEventListener('click', () => this.closeModal('loan-increase-modal'));
+    document.getElementById('loan-increase-form')?.addEventListener('submit', (e) => this.handleLoanIncreaseSubmit(e));
+
     // Loans table delegation
     const loansTableBody = document.getElementById('loans-table-body');
     if (loansTableBody) {
       loansTableBody.addEventListener('click', (e) => {
         const payBtn = e.target.closest('.btn-pay-loan');
+        const increaseBtn = e.target.closest('.btn-increase-loan');
         const deleteBtn = e.target.closest('.btn-delete-loan');
         if (payBtn) this.openLoanPaymentModal(payBtn.dataset.id);
+        if (increaseBtn) this.openLoanIncreaseModal(increaseBtn.dataset.id);
         if (deleteBtn) this.deleteLoan(deleteBtn.dataset.id);
       });
     }
@@ -2619,7 +2627,13 @@ class InventoryApp {
       return;
     }
 
-    tbody.innerHTML = this.loans.map(l => {
+    const sortedLoans = [...this.loans].sort((a, b) => {
+      const aIsPaid = a.remainingAmount <= 0.001;
+      const bIsPaid = b.remainingAmount <= 0.001;
+      return Number(aIsPaid) - Number(bIsPaid);
+    });
+
+    tbody.innerHTML = sortedLoans.map(l => {
       let badgeHtml;
       if (l.computedStatus === 'returned') {
         badgeHtml = '<span class="badge badge-success">Quitado</span>';
@@ -2652,6 +2666,9 @@ class InventoryApp {
             <div class="actions-cell">
               <button class="btn-icon view btn-pay-loan" data-id="${l.id}" title="${isReturned ? 'Ver Histórico de Pagamentos' : 'Pagar / Abater Valor'}" style="color:${isReturned ? 'var(--accent-blue)' : 'var(--accent-emerald)'};">
                 <i data-lucide="${isReturned ? 'receipt' : 'hand-coins'}" style="width:16px;height:16px;"></i>
+              </button>
+              <button class="btn-icon view btn-increase-loan" data-id="${l.id}" title="Aumentar dívida">
+                <i data-lucide="circle-plus" style="width:16px;height:16px;"></i>
               </button>
               <button class="btn-icon delete btn-delete-loan" data-id="${l.id}" title="Excluir Empréstimo">
                 <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
@@ -2712,26 +2729,97 @@ class InventoryApp {
     const container = document.getElementById('loan-payments-history-list');
     if (!container) return;
 
-    const payments = loan.payments || [];
-    if (payments.length === 0) {
-      container.innerHTML = '<div style="font-size:0.8rem;color:var(--text-dim);text-align:center;padding:8px;">Nenhum pagamento registrado ainda.</div>';
+    const history = [
+      ...(loan.payments || []).map(payment => ({ ...payment, type: 'payment' })),
+      ...(loan.debtIncreases || []).map(increase => ({ ...increase, type: 'increase' }))
+    ].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || '').localeCompare(b.createdAt || ''));
+
+    if (history.length === 0) {
+      container.innerHTML = '<div style="font-size:0.8rem;color:var(--text-dim);text-align:center;padding:8px;">Nenhuma movimentação registrada ainda.</div>';
       return;
     }
 
-    container.innerHTML = payments.map(p => `
+    container.innerHTML = history.map(entry => entry.type === 'increase' ? `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.85rem;">
         <div>
-          <span style="font-weight:600;color:var(--accent-emerald);">${this.formatCurrency(p.amount)}</span>
-          <span style="color:var(--text-dim);font-size:0.75rem;margin-left:8px;">${this.formatShortDate(p.date)}</span>
-          ${p.note ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${p.note}</div>` : ''}
+          <span style="font-weight:600;color:var(--accent-amber);">+ ${this.formatCurrency(entry.amount)}</span>
+          <span style="color:var(--text-muted);margin-left:8px;">Acréscimo na dívida</span>
+          <span style="color:var(--text-dim);font-size:0.75rem;margin-left:8px;">${this.formatShortDate(entry.date)}</span>
         </div>
-        <button type="button" class="btn-icon delete btn-delete-payment" data-loan-id="${loan.id}" data-payment-id="${p.id}" title="Remover este pagamento" style="padding:2px;width:24px;height:24px;">
+      </div>
+    ` : `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.85rem;">
+        <div>
+          <span style="font-weight:600;color:var(--accent-emerald);">${this.formatCurrency(entry.amount)}</span>
+          <span style="color:var(--text-dim);font-size:0.75rem;margin-left:8px;">${this.formatShortDate(entry.date)}</span>
+          ${entry.note ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${entry.note}</div>` : ''}
+        </div>
+        <button type="button" class="btn-icon delete btn-delete-payment" data-loan-id="${loan.id}" data-payment-id="${entry.id}" title="Remover este pagamento" style="padding:2px;width:24px;height:24px;">
           <i data-lucide="x" style="width:14px;height:14px;"></i>
         </button>
       </div>
     `).join('');
 
     this.refreshIcons();
+  }
+
+  openLoanIncreaseModal(id) {
+    const loan = this.loans.find(l => l.id === id);
+    if (!loan) return;
+
+    this.loanIncreaseTargetId = id;
+    const borrowerEl = document.getElementById('loan-increase-borrower');
+    const amountInput = document.getElementById('loan-increase-amount');
+    const dateInput = document.getElementById('loan-increase-date');
+
+    if (borrowerEl) borrowerEl.textContent = loan.borrower;
+    if (amountInput) amountInput.value = '';
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    const modal = document.getElementById('loan-increase-modal');
+    if (modal) modal.classList.remove('hidden');
+    this.refreshIcons();
+  }
+
+  handleLoanIncreaseSubmit(e) {
+    e.preventDefault();
+
+    if (!this.loanIncreaseTargetId) return;
+    const loan = this.loans.find(l => l.id === this.loanIncreaseTargetId);
+    if (!loan) return;
+
+    const increaseAmount = parseFloat(document.getElementById('loan-increase-amount')?.value) || 0;
+    const increaseDate = document.getElementById('loan-increase-date')?.value;
+
+    if (!Number.isFinite(increaseAmount) || increaseAmount <= 0) {
+      return this.showToast('Informe um valor válido para aumentar a dívida.', 'error');
+    }
+    if (!increaseDate) return this.showToast('Informe a data do acréscimo.', 'error');
+
+    const amountPaid = loan.payments?.length
+      ? loan.payments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0)
+      : (loan.status === 'returned'
+        ? (typeof loan.amountReceived === 'number' ? loan.amountReceived : loan.totalToReceive)
+        : (loan.amountPaid || 0));
+
+    loan.debtIncreases = loan.debtIncreases || [];
+    loan.debtIncreases.push({
+      id: this.generateId(),
+      amount: increaseAmount,
+      date: increaseDate,
+      createdAt: new Date().toISOString()
+    });
+    loan.totalToReceive += increaseAmount;
+    loan.amountPaid = amountPaid;
+    loan.remainingAmount = Math.max(0, loan.totalToReceive - amountPaid);
+    loan.status = amountPaid > 0 ? 'partial' : 'open';
+    delete loan.actualReturnDate;
+    delete loan.returnedAt;
+
+    this.saveData();
+    this.closeModal('loan-increase-modal');
+    this.renderLoansTable();
+    this.showToast(`Dívida de ${loan.borrower} aumentada em ${this.formatCurrency(increaseAmount)}.`, 'success');
   }
 
   handleLoanPaymentSubmit(e) {
